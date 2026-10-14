@@ -54,7 +54,8 @@ component can be swapped or tested in isolation.
  ner/{train,validation}.jsonl ─► ner.convert ─► spacy/{train,validation}.spacy
    ─► ner.train (configs/ner.cfg; weights: train; checkpoint selection: validation) ─► models/finguard_ner/model-best
    ─► ner.inference.NERDetector (same Detector interface as RuleDetector)
- ner/internal_test, then official test (once, at the end) ─► evaluation.metrics(canonical gold, canonical predictions)
+ validation ─► evaluation.run (rules, NER, hybrid variants) ─► choose hybrid policy ─► evaluation.freeze
+ ner/internal_test, then official test (once each, after the freeze) ─► evaluation.run ─► reports/evaluation/
 ```
 
 ## Module responsibilities
@@ -81,9 +82,11 @@ component can be swapped or tested in isolation.
 | `ner.convert` | JSONL → spaCy DocBin with canonical spans and strict alignment; train/validation only | JSONL → `.spacy` + report |
 | `ner.train` | Pre-flight checks, config-driven `spacy train` (`configs/ner.cfg`), provenance manifest (see docs/NER.md) | `.spacy` → `models/finguard_ner/` |
 | `ner.inference` | `NERDetector`: trained model behind the `Detector` interface | text → `[Entity]` |
-| `detection.hybrid` | Merge rule and NER spans, resolving overlaps | `[Span]`, `[Span]` → `[Span]` |
+| `detection.hybrid` | `merge()` + `HybridDetector`: dedupe, card-block precedence, rule priority for structured labels, NER otherwise; suppressions recorded (docs/EVALUATION.md) | text, rule + NER entities → non-overlapping `[Entity]` + diagnostics |
 | `anonymization.anonymizer` | Replace spans (tag, mask or Faker) | text, `[Span]` → text |
-| `evaluation.metrics` | Precision / recall / F1 per label | gold, predicted → scores |
+| `evaluation.metrics` | Exact canonical-span P/R/F1: micro, macro, per label, per group; typed FP/FN | gold, predicted → `EvaluationResult` |
+| `evaluation.run` | Scores rules, NER and hybrid on the same records; reports JSON/CSV/MD (CLI) | dataset → `reports/evaluation/<dataset>/` |
+| `evaluation.freeze` | Hashes code, config, model and policy; held-out runs refuse if anything changed | → `configs/evaluation_freeze.json` |
 | `pdf.extract` | PDF text extraction (PyMuPDF, pdfplumber) | PDF → text |
 | `pdf.redact` | Draw redaction boxes over spans | PDF, spans → PDF |
 | `app/streamlit_app.py` | User interface; **no logic of its own** | upload → display |

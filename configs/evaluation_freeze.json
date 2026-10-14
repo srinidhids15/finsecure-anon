@@ -1,0 +1,34 @@
+{
+  "frozen_at": "2026-10-14T20:40:08+00:00",
+  "note": "Phase 5: hybrid policy rule_priority_structured selected on validation (ties card_block_only; rules P=1.000 on all structured labels). Frozen before any internal-test or official-test evaluation.",
+  "files": {
+    "src/finguard/schema.py": "3c8ca2400ed54c9fcc2f5aea98b5ce6746bdeb905464b90fc27192f2f27e4d9f",
+    "src/finguard/canonical.py": "1c02f099bb3d49c57a671582f6b993e4bea98859572c7e409be670fe5c00b280",
+    "src/finguard/config.py": "b5b56c0a4c2a3d22386464baf1017ba1e05b8f7924b60b13443998ddaa794c68",
+    "src/finguard/detection/base.py": "bde1c7628b8108b9f4051e1ff3774079d8f641816603b218734f09d481f6af8b",
+    "src/finguard/detection/checksums.py": "8085c0da8af7cdc7d6605a16b3d1b6c505380f79f8d61f9b36fe849b41868b42",
+    "src/finguard/detection/rules.py": "a34a9666c3275a47cc7ef77aa87a5e36fb09515b9d9a64cc9a992608afc83237",
+    "src/finguard/detection/hybrid.py": "7b0fdfef28832846cd29becbe4de0e9b080ecdc2ac2eeaccc988a6c28e7978c6",
+    "src/finguard/ner/tokenizer.py": "30cfcfb6e4ce2d99bd89afcbc244d5f38b43ae577c3702019651fb76ce4785bc",
+    "src/finguard/ner/inference.py": "b9aeaadc09bcb840be2667303f5922e9400bc1dffe7160b900168f791b9fbea8",
+    "src/finguard/data/corrections.py": "1c990c16de920a1ec9c8ef6d6e4cae42c04bcca5eb4167e810ef9a2ec948e0e3",
+    "src/finguard/data/repair.py": "7ee85eae4ec3430d99e9c17340602e2198c83b6919a7628986aaa96326b906d0",
+    "src/finguard/evaluation/metrics.py": "f32d14522f6d213543694d856ed4865ced7c71d5efacb21ceb57a96895ac432c",
+    "src/finguard/evaluation/run.py": "c52e9e5129f232e2f661ce4105f3b460fecfc5bc62678a5e2d1348f633e07de4",
+    "configs/ner.cfg": "366b36ddce19b90bef83e0900ea7d97f38062f4814bccad74ad5599931e51ba8"
+  },
+  "model": {
+    "models/finguard_ner/model-best": "f483a1d8485a9b6a4fc939f6fcf67c67df03b3c062fe0b45a5a2ad589bd6bf4f"
+  },
+  "hybrid_policy": {
+    "card_block_precedence": true,
+    "rule_priority_labels": [
+      "credit_card",
+      "email",
+      "phone",
+      "ssn",
+      "url"
+    ]
+  },
+  "freeze_sha256": "ff731aeddfc59e2783e226f7ee47f586c1524adb4e2bb5ff731742f03e575392"
+}

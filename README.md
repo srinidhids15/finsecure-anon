@@ -12,8 +12,9 @@ entities like names and addresses), then replaces what it finds.
 
 **Status:** Phases 1 (setup), 2 (dataset ingestion and audit), 3 (rule-based
 detector, see [docs/RULES.md](docs/RULES.md)), dataset readiness and 4 (spaCy NER
-training, see [docs/NER.md](docs/NER.md)) are done. Evaluation, hybrid detection,
-anonymization, PDF handling and the UI come in later phases. See
+training, see [docs/NER.md](docs/NER.md)) and 5 (evaluation and hybrid detection,
+see [docs/EVALUATION.md](docs/EVALUATION.md)) are done. Anonymization, PDF handling
+and the UI come in later phases. See
 [docs/DEVELOPMENT_CHECKLIST.md](docs/DEVELOPMENT_CHECKLIST.md).
 
 ## Requirements
@@ -58,7 +59,11 @@ python -m finguard.data.build_ner_dataset  # label corrections + template-disjoi
 python -m finguard.ner.alignment           # check every gold span aligns with FinGuard's tokenizer
 python -m finguard.ner.convert             # train/validation JSONL -> spaCy DocBin corpora
 python -m finguard.ner.train               # train the NER model on CPU (see docs/NER.md)
+python -m finguard.evaluation.run --dataset validation   # rules vs NER vs hybrid (development)
 ```
+
+Held-out evaluation (internal test, official benchmark) runs only against the
+frozen system in `configs/evaluation_freeze.json`; see [docs/EVALUATION.md](docs/EVALUATION.md).
 
 Training details, settings and the inference API: [docs/NER.md](docs/NER.md).
 

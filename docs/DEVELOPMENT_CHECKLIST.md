@@ -57,27 +57,27 @@ Every phase adds unit tests, and its results are reported exactly as they ran.
 - [x] `NERDetector` implements the `Detector` protocol; fresh-process load and tokenizer round-trip verified
 - [x] Tests: conversion, alignment, tokenizer serialisation, small-fixture training, loading, inference, labels, empty text
 
-## Phase 5: Evaluation
-- [ ] Exact-match and partial-overlap P / R / F1, per label and overall, on canonicalised spans
-- [ ] Report group-level (per split unit, macro-averaged) scores next to record-weighted scores
-- [ ] Rule-based baseline and NER model on `ner/validation.jsonl`; internal test once, at the end
+## Phase 5: Evaluation and hybrid detection ✅
+- [x] `evaluation.metrics`: exact canonical-span micro/macro/per-label/per-group P/R/F1, typed FP/FN, hand-calculated tests
+- [x] `detection.hybrid`: dedupe, card-block precedence, rule priority for structured labels, NER otherwise; suppressions recorded
+- [x] Rules, NER and 3 pre-declared hybrid variants on the same validation records; `rule_priority_structured` selected
+- [x] System frozen (`configs/evaluation_freeze.json`), then internal test and official benchmark evaluated once each
+- [x] Official benchmark: original (diagnostic) and corrected (primary) annotations; workbook unchanged
+- [ ] Partial-overlap metric (optional)
+- [ ] Address the `name` errors found on the internal test (sentence-initial words, document titles) as a new, validation-driven attempt
 
-## Phase 6: Hybrid detection
-- [ ] Documented overlap-resolution policy
-- [ ] Compare rules vs NER vs hybrid on validation; report on test once at the end
-
-## Phase 7: Anonymization
+## Phase 6: Anonymization
 - [ ] Tag / mask / Faker strategies; right-to-left replacement
 - [ ] Consistent fake values for repeated entities (optional)
 
-## Phase 8: PDF processing
+## Phase 7: PDF processing
 - [ ] Text extraction (PyMuPDF; pdfplumber for tables)
 - [ ] Detect scanned PDFs with no text layer
 - [ ] Redacted PDF output
 
-## Phase 9: Streamlit frontend
+## Phase 8: Streamlit frontend
 - [ ] Upload text or PDF → show detections → download anonymized output
 - [ ] No raw text logging; temporary files cleaned up
 
-## Phase 10: Documentation and final evaluation
+## Phase 9: Documentation and final evaluation
 - [ ] Final test-set results, limitations, viva notes

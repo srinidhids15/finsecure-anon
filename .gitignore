@@ -36,3 +36,6 @@ models/*
 
 # --- Streamlit local secrets ---
 .streamlit/secrets.toml
+
+# --- Evaluation reports (generated, reproducible) ---
+reports/
