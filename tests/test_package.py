@@ -26,6 +26,7 @@ MODULES = [
     "finguard.detection.hybrid",
     "finguard.ner.train",
     "finguard.ner.alignment",
+    "finguard.ner.convert",
     "finguard.ner.inference",
     "finguard.ner.tokenizer",
     "finguard.evaluation.metrics",

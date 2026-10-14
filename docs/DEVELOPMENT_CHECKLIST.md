@@ -49,15 +49,18 @@ Every phase adds unit tests, and its results are reported exactly as they ran.
 - [x] Tokenizer persisted (config + entry point); save/reload reproduces token offsets
 - [x] Tests: alias groups never cross partitions, reproducibility, high-frequency coverage, strict alignment, card canonicalisation, official test workbook never opened
 
-## Phase 4: Evaluation
+## Phase 4: spaCy NER training ✅
+- [x] `ner.convert`: JSONL → DocBin with `finguard.Tokenizer.v1`, canonical spans, strict alignment; fails with diagnostics, refuses test partitions
+- [x] `configs/ner.cfg`: CPU efficiency architecture (tok2vec + ner), no pretrained weights, seed 42
+- [x] `ner.train`: pre-flight checks (tokenizer registered, corpora = train/validation and current), `spacy train`, provenance manifest
+- [x] Weights from train only; checkpoint selection on validation; internal/official test untouched
+- [x] `NERDetector` implements the `Detector` protocol; fresh-process load and tokenizer round-trip verified
+- [x] Tests: conversion, alignment, tokenizer serialisation, small-fixture training, loading, inference, labels, empty text
+
+## Phase 5: Evaluation
 - [ ] Exact-match and partial-overlap P / R / F1, per label and overall, on canonicalised spans
 - [ ] Report group-level (per split unit, macro-averaged) scores next to record-weighted scores
-- [ ] Score the rule-based baseline on `ner/validation.jsonl`
-
-## Phase 5: spaCy NER training and inference
-- [ ] Convert to `DocBin` with canonical spans and `finguard.Tokenizer.v1`; fail on any misaligned span
-- [ ] Train on the train split, select the model on validation
-- [ ] `ner.inference` returns `Span` objects
+- [ ] Rule-based baseline and NER model on `ner/validation.jsonl`; internal test once, at the end
 
 ## Phase 6: Hybrid detection
 - [ ] Documented overlap-resolution policy

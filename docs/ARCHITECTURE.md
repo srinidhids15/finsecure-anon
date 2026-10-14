@@ -51,7 +51,9 @@ component can be swapped or tested in isolation.
                    ─► data/processed/ner/{train,validation,internal_test}.jsonl
  Test workbook ─► data.prepare ─► data/processed/test.jsonl   (official benchmark; never enters splitting)
 
- ner/train ─► ner.train (canonical spans) ─► models/   (validation used for model selection)
+ ner/{train,validation}.jsonl ─► ner.convert ─► spacy/{train,validation}.spacy
+   ─► ner.train (configs/ner.cfg; weights: train; checkpoint selection: validation) ─► models/finguard_ner/model-best
+   ─► ner.inference.NERDetector (same Detector interface as RuleDetector)
  ner/internal_test, then official test (once, at the end) ─► evaluation.metrics(canonical gold, canonical predictions)
 ```
 
@@ -76,8 +78,9 @@ component can be swapped or tested in isolation.
 | `detection.base` | `Detector` protocol, sorting, overlap listing | — |
 | `detection.checksums` | Luhn, SSN structure, card-prefix checks | str → bool |
 | `detection.rules` | `RuleDetector`: email, url, phone, ssn, credit_card (see docs/RULES.md) | text → `[Entity]` |
-| `ner.train` | Build a spaCy model from the training split, with `ner.tokenizer` and canonical spans | examples → model in `models/` |
-| `ner.inference` | Run the trained model (same `Detector` interface) | text → `[Entity]` |
+| `ner.convert` | JSONL → spaCy DocBin with canonical spans and strict alignment; train/validation only | JSONL → `.spacy` + report |
+| `ner.train` | Pre-flight checks, config-driven `spacy train` (`configs/ner.cfg`), provenance manifest (see docs/NER.md) | `.spacy` → `models/finguard_ner/` |
+| `ner.inference` | `NERDetector`: trained model behind the `Detector` interface | text → `[Entity]` |
 | `detection.hybrid` | Merge rule and NER spans, resolving overlaps | `[Span]`, `[Span]` → `[Span]` |
 | `anonymization.anonymizer` | Replace spans (tag, mask or Faker) | text, `[Span]` → text |
 | `evaluation.metrics` | Precision / recall / F1 per label | gold, predicted → scores |

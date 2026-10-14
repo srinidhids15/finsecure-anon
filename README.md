@@ -10,9 +10,10 @@ entities like names and addresses), then replaces what it finds.
 > public FinSecureAnon project. It does not reuse that project's source code,
 > trained models or results.
 
-**Status:** Phases 1 (setup), 2 (dataset ingestion and audit) and 3 (rule-based
-detector, see [docs/RULES.md](docs/RULES.md)) are done. Evaluation, NER training,
-hybrid detection, anonymization, PDF handling and the UI come in later phases. See
+**Status:** Phases 1 (setup), 2 (dataset ingestion and audit), 3 (rule-based
+detector, see [docs/RULES.md](docs/RULES.md)), dataset readiness and 4 (spaCy NER
+training, see [docs/NER.md](docs/NER.md)) are done. Evaluation, hybrid detection,
+anonymization, PDF handling and the UI come in later phases. See
 [docs/DEVELOPMENT_CHECKLIST.md](docs/DEVELOPMENT_CHECKLIST.md).
 
 ## Requirements
@@ -55,7 +56,11 @@ decision are in [docs/DATASET.md](docs/DATASET.md).
 python -m finguard.data.prepare            # audit + write data/processed/{train,validation,test}.jsonl
 python -m finguard.data.build_ner_dataset  # label corrections + template-disjoint train/validation/internal_test
 python -m finguard.ner.alignment           # check every gold span aligns with FinGuard's tokenizer
+python -m finguard.ner.convert             # train/validation JSONL -> spaCy DocBin corpora
+python -m finguard.ner.train               # train the NER model on CPU (see docs/NER.md)
 ```
+
+Training details, settings and the inference API: [docs/NER.md](docs/NER.md).
 
 ## Running
 
