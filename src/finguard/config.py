@@ -21,6 +21,19 @@ SAMPLES_DIR: Path = DATA_DIR / "samples"  # small synthetic examples (committed)
 
 MODELS_DIR: Path = PROJECT_ROOT / "models"  # trained spaCy models (git-ignored)
 
+# Entity classes FinGuard detects. These match the labels used in the
+# Mendeley dataset's "True Predictions" column (verified in Phase 2).
+ENTITY_LABELS: tuple[str, ...] = (
+    "name",
+    "email",
+    "phone",
+    "address",
+    "ssn",
+    "credit_card",
+    "company",
+    "url",
+)
+
 # Fixed seed so data splits and synthetic generation are reproducible.
 RANDOM_SEED: int = 42
 

@@ -10,7 +10,7 @@ entities like names and addresses), then replaces what it finds.
 > public FinSecureAnon project. It does not reuse that project's source code,
 > trained models or results.
 
-**Status:** Phase 1 (project setup) is done. Detection, training, anonymization, PDF
+**Status:** Phases 1 (setup) and 2 (dataset ingestion and audit) are done. Detection, training, anonymization, PDF
 handling and the UI are implemented in later phases. See
 [docs/DEVELOPMENT_CHECKLIST.md](docs/DEVELOPMENT_CHECKLIST.md).
 
@@ -41,10 +41,23 @@ python -m pytest
 If `python3.11` is not on your PATH after installing it with Homebrew, use
 `/opt/homebrew/bin/python3.11` (Apple Silicon) or `/usr/local/bin/python3.11` (Intel).
 
+## Dataset
+
+FinGuard uses the CC BY 4.0 *Synthetic Dataset for PII Detection and
+Anonymization in Financial Documents* (Mishra et al., Mendeley Data, 2024,
+DOI [10.17632/tzrjx692jy.1](https://doi.org/10.17632/tzrjx692jy.1)).
+Download instructions, format, the issues found and every preprocessing
+decision are in [docs/DATASET.md](docs/DATASET.md).
+
+```bash
+# after extracting the two .xlsx files into data/raw/mendeley_tzrjx692jy_v1/
+python -m finguard.data.prepare        # audit + write data/processed/{train,validation,test}.jsonl
+```
+
 ## Running
 
 ```bash
-python -m pytest                       # run all unit tests
+python -m pytest                       # run all unit tests (real-data tests skip if data is absent)
 python -m pytest tests/test_schema.py  # run one test file
 streamlit run app/streamlit_app.py     # placeholder UI at http://localhost:8501
 ```
@@ -83,5 +96,7 @@ For how the parts fit together, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## License and attribution
 
-Any third-party dataset is credited here once it is added (for example, a
-CC BY 4.0 dataset needs attribution to its authors).
+Dataset: Mishra, K., Pagare, H., Bidwe, R., Mishra, S. (2024). *Synthetic
+Dataset for PII Detection and Anonymization in Financial Documents.* Mendeley
+Data, V1. https://doi.org/10.17632/tzrjx692jy.1. Licensed CC BY 4.0. The data
+is not redistributed in this repository.

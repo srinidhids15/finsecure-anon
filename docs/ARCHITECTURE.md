@@ -35,8 +35,8 @@ Because every detector returns `list[Span]` and every consumer accepts
                          pdf.redact(pdf, spans)                ──► redacted PDF
 
  Training/evaluation path (offline):
- data.loader ─► data.validation ─► train / dev / test splits
-                 train + dev ─► ner.train ─► models/   (dev used for model selection)
+ data.loader ─► data.repair ─► data.validation ─► data.split ─► train / validation / test JSONL
+                 train + validation ─► ner.train ─► models/   (validation used for model selection)
                  test (untouched) ─► evaluation.metrics(gold, predicted)
 ```
 
@@ -46,8 +46,13 @@ Because every detector returns `list[Span]` and every consumer accepts
 |---|---|---|
 | `config` | Paths, random seed, privacy flags | — |
 | `schema` | `Span` data contract and its validation | — |
-| `data.loader` | Read dataset files; safe parsing (no `eval`) | file → `[(text, [Span])]` |
-| `data.validation` | Bounds checks, overlap handling, splits | examples → problems / splits |
+| `data.loader` | Read workbooks (`RawRecord`) and processed JSONL (`Example`) | file → records |
+| `data.annotations` | Safe parsing of annotation strings (no `eval`) | str → list |
+| `data.repair` | Undo mojibake in text (labels untouched) | text → text |
+| `data.validation` | Structure, labels, offsets, substring, overlap, duplicate checks | record → spans + `Issue`s |
+| `data.split` | Template-grouped train/validation split | groups → indices |
+| `data.statistics` | Per-class counts and lengths | examples → dict |
+| `data.prepare` | Phase 2 pipeline + audit report (CLI) | raw files → JSONL + report |
 | `detection.rules` | Regex and checksum rules for structured PII | text → `[Span]` |
 | `ner.train` | Build a spaCy model from the training split | examples → model in `models/` |
 | `ner.inference` | Run the trained model | text → `[Span]` |
@@ -64,6 +69,6 @@ Because every detector returns `list[Span]` and every consumer accepts
    never imports Streamlit. Detectors do not import each other; only
    `hybrid` combines them.
 2. **The test set stays untouched.** It is never used for training or model
-   selection; only the dev split is used for those.
+   selection; only the validation split is used for those.
 3. **Privacy by default.** No raw document text in logs; private data stays
    in git-ignored folders.

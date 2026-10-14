@@ -11,12 +11,16 @@ Every phase adds unit tests, and its results are reported exactly as they ran.
 - [x] Smoke tests and `Span` tests passing
 - [x] README, architecture notes, this checklist
 
-## Phase 2: Data loading and validation
-- [ ] Choose a dataset, record its license and attribution in the README
-- [ ] Inspect the label set and decide FinGuard's entity labels
-- [ ] `data.loader`: safe annotation parsing (json / `ast.literal_eval`)
-- [ ] `data.validation`: bounds, misaligned offsets, overlapping spans
-- [ ] Reproducible train / dev / test split (fixed seed); freeze the test set
+## Phase 2: Dataset ingestion and quality audit ✅
+- [x] Dataset chosen (Mendeley tzrjx692jy v1, CC BY 4.0); attribution in README and docs/DATASET.md
+- [x] Format inspected: 2 single-sheet .xlsx files, annotations as Python-literal strings
+- [x] Label set confirmed: 8 classes match the dataset exactly
+- [x] Safe annotation parsing (`ast.literal_eval`, no `eval`)
+- [x] Validation: structure, labels, offsets, substring = source value, overlaps, duplicates
+- [x] Root cause of misaligned offsets found (mojibake) and repaired in text only
+- [x] Per-class statistics and invalid-record report (before and after repair)
+- [x] Template-grouped train/validation split from the training file; test set preserved
+- [ ] Trailing newline in credit_card spans: handle in Phase 5 (spaCy conversion)
 
 ## Phase 3: Rule-based detection
 - [ ] Regex rules per structured entity, plus checksums where applicable (e.g. Luhn)
@@ -24,16 +28,16 @@ Every phase adds unit tests, and its results are reported exactly as they ran.
 
 ## Phase 4: Evaluation
 - [ ] Exact-match and partial-overlap P / R / F1, per label and overall
-- [ ] Score the rule-based baseline on the dev split
+- [ ] Score the rule-based baseline on the validation split
 
 ## Phase 5: spaCy NER training and inference
 - [ ] Convert to `DocBin`, report spans dropped by token misalignment
-- [ ] Train on the train split, select the model on dev
+- [ ] Train on the train split, select the model on validation
 - [ ] `ner.inference` returns `Span` objects
 
 ## Phase 6: Hybrid detection
 - [ ] Documented overlap-resolution policy
-- [ ] Compare rules vs NER vs hybrid on dev; report on test once at the end
+- [ ] Compare rules vs NER vs hybrid on validation; report on test once at the end
 
 ## Phase 7: Anonymization
 - [ ] Tag / mask / Faker strategies; right-to-left replacement

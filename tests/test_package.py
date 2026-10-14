@@ -10,7 +10,12 @@ from finguard import config
 MODULES = [
     "finguard.schema",
     "finguard.config",
+    "finguard.data.annotations",
     "finguard.data.loader",
+    "finguard.data.prepare",
+    "finguard.data.repair",
+    "finguard.data.split",
+    "finguard.data.statistics",
     "finguard.data.validation",
     "finguard.detection.rules",
     "finguard.detection.hybrid",
