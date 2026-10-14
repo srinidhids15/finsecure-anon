@@ -6,10 +6,6 @@ combines **rule-based detection** (regular expressions for structured values
 like account and card numbers) with a **spaCy NER model** (for free-form
 entities like names and addresses), then replaces what it finds.
 
-> FinGuard is an original project, built from scratch after studying the
-> public FinSecureAnon project. It does not reuse that project's source code,
-> trained models or results.
-
 **Status:** Phases 1 (setup), 2 (dataset ingestion and audit), 3 (rule-based
 detector, see [docs/RULES.md](docs/RULES.md)), dataset readiness and 4 (spaCy NER
 training, see [docs/NER.md](docs/NER.md)) and 5 (evaluation and hybrid detection,
