@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finguard"
+version = "0.1.0"
+description = "PII detection and anonymization for financial documents (rules + spaCy NER)."
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+# Version *ranges* live here (what the package needs).
+# Exact, tested versions live in requirements.txt (what we reproduce).
+dependencies = [
+    "spacy>=3.7,<4",
+    "pandas>=2.2,<3",
+    "Faker>=25",
+    "scikit-learn>=1.5,<2",
+    "streamlit>=1.38,<2",
+    "PyMuPDF>=1.24,<2",
+    "pdfplumber>=0.11,<1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"

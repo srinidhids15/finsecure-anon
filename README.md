@@ -1,0 +1,87 @@
+# FinGuard
+
+FinGuard detects and anonymizes personally identifiable information (PII) in
+financial documents such as bank statements, invoices and loan forms. It
+combines **rule-based detection** (regular expressions for structured values
+like account and card numbers) with a **spaCy NER model** (for free-form
+entities like names and addresses), then replaces what it finds.
+
+> FinGuard is an original project, built from scratch after studying the
+> public FinSecureAnon project. It does not reuse that project's source code,
+> trained models or results.
+
+**Status:** Phase 1 (project setup) is done. Detection, training, anonymization, PDF
+handling and the UI are implemented in later phases. See
+[docs/DEVELOPMENT_CHECKLIST.md](docs/DEVELOPMENT_CHECKLIST.md).
+
+## Requirements
+
+- Python **3.11** (the project is pinned to 3.11.x)
+- macOS, Linux or Windows
+
+## Setup
+
+```bash
+# 1. Get Python 3.11 (macOS + Homebrew; on other systems use python.org or your package manager)
+brew install python@3.11
+
+# 2. Create and activate a virtual environment in the project folder
+python3.11 -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+
+# 3. Install exact, tested dependencies plus FinGuard itself (editable)
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+
+# 4. Check that the installation works
+python -c "import finguard; print(finguard.__version__)"
+python -m pytest
+```
+
+If `python3.11` is not on your PATH after installing it with Homebrew, use
+`/opt/homebrew/bin/python3.11` (Apple Silicon) or `/usr/local/bin/python3.11` (Intel).
+
+## Running
+
+```bash
+python -m pytest                       # run all unit tests
+python -m pytest tests/test_schema.py  # run one test file
+streamlit run app/streamlit_app.py     # placeholder UI at http://localhost:8501
+```
+
+## Project layout
+
+```
+.
+├── pyproject.toml          # package metadata, dependency ranges, pytest config
+├── requirements.txt        # exact tested versions (reproducible install)
+├── src/finguard/           # the importable package (all real logic lives here)
+│   ├── schema.py           # Span: the data contract shared by every component
+│   ├── config.py           # paths and global constants
+│   ├── data/               # loading + validating annotated datasets
+│   ├── detection/          # rules.py (regex) and hybrid.py (merge rules + NER)
+│   ├── ner/                # spaCy training and inference
+│   ├── evaluation/         # precision / recall / F1
+│   ├── anonymization/      # replace detected spans in text
+│   └── pdf/                # extract text from PDFs, write redacted PDFs
+├── app/                    # Streamlit frontend (calls the package only)
+├── tests/                  # pytest unit tests
+├── docs/                   # architecture notes and development checklist
+├── data/                   # datasets: contents git-ignored (see data/README.md)
+└── models/                 # trained models: contents git-ignored
+```
+
+For how the parts fit together, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## Data and privacy
+
+- Downloaded datasets go in `data/raw/`. Real or private documents go in
+  `data/private/`. Git ignores both, along with every `*.pdf` outside
+  `data/samples/`.
+- Only small, fully synthetic examples are committed, in `data/samples/`.
+- Raw document text is not logged by default (`config.LOG_RAW_TEXT = False`).
+
+## License and attribution
+
+Any third-party dataset is credited here once it is added (for example, a
+CC BY 4.0 dataset needs attribution to its authors).

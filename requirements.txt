@@ -1,0 +1,14 @@
+# Exact versions verified with Python 3.11.17 on 2026-10-14.
+# Version ranges (what the package needs) are in pyproject.toml.
+# Install: pip install -r requirements.txt
+spacy==3.8.16
+pandas==2.3.3
+Faker==40.43.0
+scikit-learn==1.9.1
+streamlit==1.65.0
+PyMuPDF==1.28.2
+pdfplumber==0.11.10
+pytest==8.4.2
+
+# Install FinGuard itself in editable mode so `import finguard` works.
+-e .
