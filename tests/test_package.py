@@ -17,6 +17,8 @@ MODULES = [
     "finguard.data.split",
     "finguard.data.statistics",
     "finguard.data.validation",
+    "finguard.detection.base",
+    "finguard.detection.checksums",
     "finguard.detection.rules",
     "finguard.detection.hybrid",
     "finguard.ner.train",

@@ -10,8 +10,9 @@ entities like names and addresses), then replaces what it finds.
 > public FinSecureAnon project. It does not reuse that project's source code,
 > trained models or results.
 
-**Status:** Phases 1 (setup) and 2 (dataset ingestion and audit) are done. Detection, training, anonymization, PDF
-handling and the UI are implemented in later phases. See
+**Status:** Phases 1 (setup), 2 (dataset ingestion and audit) and 3 (rule-based
+detector, see [docs/RULES.md](docs/RULES.md)) are done. Evaluation, NER training,
+hybrid detection, anonymization, PDF handling and the UI come in later phases. See
 [docs/DEVELOPMENT_CHECKLIST.md](docs/DEVELOPMENT_CHECKLIST.md).
 
 ## Requirements
@@ -72,7 +73,7 @@ streamlit run app/streamlit_app.py     # placeholder UI at http://localhost:8501
 │   ├── schema.py           # Span: the data contract shared by every component
 │   ├── config.py           # paths and global constants
 │   ├── data/               # loading + validating annotated datasets
-│   ├── detection/          # rules.py (regex) and hybrid.py (merge rules + NER)
+│   ├── detection/          # base.py (Detector interface), rules.py (regex), hybrid.py
 │   ├── ner/                # spaCy training and inference
 │   ├── evaluation/         # precision / recall / F1
 │   ├── anonymization/      # replace detected spans in text

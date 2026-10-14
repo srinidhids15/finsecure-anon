@@ -20,11 +20,16 @@ Every phase adds unit tests, and its results are reported exactly as they ran.
 - [x] Root cause of misaligned offsets found (mojibake) and repaired in text only
 - [x] Per-class statistics and invalid-record report (before and after repair)
 - [x] Template-grouped train/validation split from the training file; test set preserved
-- [ ] Trailing newline in credit_card spans: handle in Phase 5 (spaCy conversion)
+- [ ] Trailing newline in credit_card spans: normalise gold *and* predicted spans in the conversion/evaluation layer (Phases 4-5)
 
-## Phase 3: Rule-based detection
-- [ ] Regex rules per structured entity, plus checksums where applicable (e.g. Luhn)
-- [ ] Tests with positive and negative examples for every rule
+## Phase 3: Rule-based detection ✅
+- [x] `Entity` output type and `Detector` protocol (stable interface for NER/hybrid)
+- [x] Rules: email, url, phone (documented formats), ssn (SSA structure), credit_card
+- [x] Credit-card unit established from training data: full 5-line block incl. trailing newline
+- [x] Luhn + network prefix checks; stand-alone number rule yields to block rule
+- [x] Overlaps returned, suppressions reported (`detect_with_report`)
+- [x] Synthetic unit tests: valid/invalid, punctuation, multiline, adjacency, Unicode, offsets
+- [x] docs/RULES.md; dataset issues 6-7 recorded in docs/DATASET.md
 
 ## Phase 4: Evaluation
 - [ ] Exact-match and partial-overlap P / R / F1, per label and overall

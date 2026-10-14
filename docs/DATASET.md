@@ -60,6 +60,14 @@ and 10 text columns:
 | 4 | Test set is very small | 30 records, 257 spans; 23 to 49 spans (22 to 29 records) per class | Test scores will have wide uncertainty; report them with that caveat. |
 | 5 | Test distribution differs | 16 of 30 test documents reuse an exact training template. 3 test documents (`test-000003`, `-000006`, `-000007`; 217, 185 and 111 chars) are shorter than any training document (min 448 chars). | Descriptive only; discussed when results are reported. |
 
+Found later, in Phase 3, while checking the rule detector on the **training
+partition only**:
+
+| # | Issue | Scope | Handling |
+|---|---|---|---|
+| 6 | **Unannotated URLs.** In some documents the generator dropped the dot after `www` (`URL` column `https://www.keith.com/`, text `https://wwwkeith.com/`). The annotations mark only exact copies of the column value, so these URLs have no gold span. | 705 documents in the training partition; the same template mechanism probably affects validation/test, which were not inspected. | Not fixed: no labels are added. A correct URL detector will be scored as a false positive on these; report this when presenting precision. |
+| 7 | **Phone country codes starting with `0`** (`+04 7024846271`): impossible in real numbering, but labelled `phone`. | 2,500 of 39,243 training-partition phone spans | The rule accepts them to follow the dataset's entity definition (docs/RULES.md). |
+
 Checked and **not** found: missing text, unparseable annotations, malformed
 tuples, unknown labels, out-of-range offsets, overlapping spans, duplicate
 spans, duplicate records, and test documents copied into the training file.

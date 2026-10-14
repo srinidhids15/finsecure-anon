@@ -46,3 +46,23 @@ def test_span_is_immutable():
     span = Span(0, 3, "PERSON")
     with pytest.raises(AttributeError):
         span.start = 1
+
+
+# ------------------------------------------------------------------ Entity
+
+
+def test_entity_from_text_slices_the_document():
+    from finguard.schema import Entity
+
+    e = Entity.from_text("Paid by Asha Rao", 8, 16, "name", "rule:x")
+    assert e.text == "Asha Rao"
+    assert isinstance(e, Span)
+
+
+def test_entity_text_must_match_span_length():
+    from finguard.schema import Entity
+
+    with pytest.raises(ValueError):
+        Entity(0, 5, "name", "rule:x", "abc")
+    with pytest.raises(ValueError):
+        Entity.from_text("short", 0, 10, "name", "rule:x")

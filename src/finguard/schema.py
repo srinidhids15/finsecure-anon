@@ -56,3 +56,43 @@ class Span:
     def overlaps(self, other: Span) -> bool:
         """True if the two spans share at least one character."""
         return self.start < other.end and other.start < self.end
+
+
+@dataclass(frozen=True)
+class Entity(Span):
+    """A *detected* span that also carries the exact text it matched.
+
+    Detectors return ``Entity`` objects. Because ``Entity`` is a ``Span``,
+    every consumer written for spans (anonymizer, evaluator, hybrid merger)
+    accepts it unchanged. Gold annotations stay plain ``Span`` objects.
+
+    Build one with ``Entity.from_text`` so ``text`` is always the real slice.
+    """
+
+    text: str = ""
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        if len(self.text) != self.end - self.start:
+            raise ValueError(
+                f"Entity text length ({len(self.text)}) does not match "
+                f"span length ({self.end - self.start})"
+            )
+
+    @classmethod
+    def from_text(
+        cls, document: str, start: int, end: int, label: str, source: str
+    ) -> Entity:
+        """Create an entity whose ``text`` is ``document[start:end]``."""
+        if end > len(document):
+            raise ValueError(f"end ({end}) exceeds text length ({len(document)})")
+        return cls(start, end, label, source, document[start:end])
+
+    def to_dict(self) -> dict:
+        return {
+            "start": self.start,
+            "end": self.end,
+            "label": self.label,
+            "text": self.text,
+            "source": self.source,
+        }
