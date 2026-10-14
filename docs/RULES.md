@@ -153,8 +153,10 @@ It is not the Phase 4 evaluation: validation and test were not used.
 | credit_card | 36,897 | 36,897 | 0 | 0 |
 
 - All 705 extra URLs are real URLs that the gold labels miss (see
-  docs/DATASET.md, issue 6). The rule was deliberately **not** changed to
-  avoid them.
+  docs/DATASET.md, issues 6 and 8). The rule was deliberately **not**
+  changed to avoid them. The NER-ready dataset (`data/processed/ner/`)
+  adds these as gold spans via a correction rule that uses only the source
+  columns, not the detector.
 - Exactly one rule change came from this check: accepting phone country
   codes that start with `0` (2,500 phone spans were missed before it).
   Other changes (excluding curly quotes from URL paths, allowing longer phone

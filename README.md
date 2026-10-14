@@ -52,7 +52,9 @@ decision are in [docs/DATASET.md](docs/DATASET.md).
 
 ```bash
 # after extracting the two .xlsx files into data/raw/mendeley_tzrjx692jy_v1/
-python -m finguard.data.prepare        # audit + write data/processed/{train,validation,test}.jsonl
+python -m finguard.data.prepare            # audit + write data/processed/{train,validation,test}.jsonl
+python -m finguard.data.build_ner_dataset  # label corrections + template-disjoint train/validation/internal_test
+python -m finguard.ner.alignment           # check every gold span aligns with FinGuard's tokenizer
 ```
 
 ## Running
@@ -79,6 +81,7 @@ streamlit run app/streamlit_app.py     # placeholder UI at http://localhost:8501
 │   ├── anonymization/      # replace detected spans in text
 │   └── pdf/                # extract text from PDFs, write redacted PDFs
 ├── app/                    # Streamlit frontend (calls the package only)
+├── configs/                # reviewed configuration (template alias families)
 ├── tests/                  # pytest unit tests
 ├── docs/                   # architecture notes and development checklist
 ├── data/                   # datasets: contents git-ignored (see data/README.md)

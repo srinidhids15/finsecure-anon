@@ -20,6 +20,7 @@ PRIVATE_DATA_DIR: Path = DATA_DIR / "private"  # real documents (git-ignored)
 SAMPLES_DIR: Path = DATA_DIR / "samples"  # small synthetic examples (committed)
 
 MODELS_DIR: Path = PROJECT_ROOT / "models"  # trained spaCy models (git-ignored)
+CONFIGS_DIR: Path = PROJECT_ROOT / "configs"  # reviewed configuration (committed)
 
 # Entity classes FinGuard detects. These match the labels used in the
 # Mendeley dataset's "True Predictions" column (verified in Phase 2).

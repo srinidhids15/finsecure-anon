@@ -27,3 +27,15 @@ def test_empty_input():
     stats = compute_statistics([])
     assert stats["records"] == 0
     assert stats["text_length"]["max"] == 0
+
+
+def test_record_weighted_vs_group_level_distribution():
+    from finguard.data.statistics import class_distribution, group_level_class_distribution
+
+    big = [Example(f"b{i}", "Asha", (Span(0, 4, "name"),), "big") for i in range(9)]
+    small = [Example("s0", "a@x.co", (Span(0, 6, "email"),), "small")]
+    rec = class_distribution(big + small)
+    grp = group_level_class_distribution(big + small)
+    assert (rec["name"], rec["email"]) == (0.9, 0.1)  # the big group dominates
+    assert (grp["name"], grp["email"]) == (0.5, 0.5)  # each group counts once
+    assert grp["ssn"] == 0.0

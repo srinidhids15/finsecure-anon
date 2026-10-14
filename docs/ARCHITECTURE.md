@@ -45,9 +45,14 @@ component can be swapped or tested in isolation.
                          pdf.redact(pdf, spans)                ──► redacted PDF
 
  Training/evaluation path (offline):
- data.loader ─► data.repair ─► data.validation ─► data.split ─► train / validation / test JSONL
-                 train + validation ─► ner.train ─► models/   (validation used for model selection)
-                 test (untouched) ─► evaluation.metrics(gold, predicted)
+ Training workbook ─► data.prepare (Phase 2: repair, validate) ─► data/processed/{train,validation}.jsonl
+                   ─► data.build_ner_dataset (corrections, template groups,
+                        configs/template_aliases.json → split units, stratified split)
+                   ─► data/processed/ner/{train,validation,internal_test}.jsonl
+ Test workbook ─► data.prepare ─► data/processed/test.jsonl   (official benchmark; never enters splitting)
+
+ ner/train ─► ner.train (canonical spans) ─► models/   (validation used for model selection)
+ ner/internal_test, then official test (once, at the end) ─► evaluation.metrics(canonical gold, canonical predictions)
 ```
 
 ## Module responsibilities
@@ -60,13 +65,18 @@ component can be swapped or tested in isolation.
 | `data.annotations` | Safe parsing of annotation strings (no `eval`) | str → list |
 | `data.repair` | Undo mojibake in text (labels untouched) | text → text |
 | `data.validation` | Structure, labels, offsets, substring, overlap, duplicate checks | record → spans + `Issue`s |
-| `data.split` | Template-grouped train/validation split | groups → indices |
+| `data.split` | Phase 2 two-way split; NER template key and clustering; alias resolution; stratified three-way split of whole units | groups → units → partitions |
+| `data.corrections` | `dot_dropped_variant` rule: add missing gold spans with provenance | record → `Correction`s + review items |
+| `data.build_ner_dataset` | Pre-Phase 4 pipeline: verify Phase 2, correct, group, apply reviewed aliases, stratified split (CLI) | training workbook + Phase 2 JSONL + `configs/template_aliases.json` → `data/processed/ner/` |
+| `ner.tokenizer` | `finguard.Tokenizer.v1`: English tokenizer + documented boundary rules; registered for `spacy.load` | text → tokens |
+| `ner.alignment` | Strict gold-span/token alignment audit, by label and failure pattern (CLI) | examples → report |
+| `canonical` | Trailing-whitespace span policy for spaCy conversion and evaluation | text, spans → spans |
 | `data.statistics` | Per-class counts and lengths | examples → dict |
 | `data.prepare` | Phase 2 pipeline + audit report (CLI) | raw files → JSONL + report |
 | `detection.base` | `Detector` protocol, sorting, overlap listing | — |
 | `detection.checksums` | Luhn, SSN structure, card-prefix checks | str → bool |
 | `detection.rules` | `RuleDetector`: email, url, phone, ssn, credit_card (see docs/RULES.md) | text → `[Entity]` |
-| `ner.train` | Build a spaCy model from the training split | examples → model in `models/` |
+| `ner.train` | Build a spaCy model from the training split, with `ner.tokenizer` and canonical spans | examples → model in `models/` |
 | `ner.inference` | Run the trained model (same `Detector` interface) | text → `[Entity]` |
 | `detection.hybrid` | Merge rule and NER spans, resolving overlaps | `[Span]`, `[Span]` → `[Span]` |
 | `anonymization.anonymizer` | Replace spans (tag, mask or Faker) | text, `[Span]` → text |
@@ -87,5 +97,10 @@ component can be swapped or tested in isolation.
    `hybrid` combines them.
 3. **The test set stays untouched.** It is never used for training or model
    selection; only the validation split is used for those.
-4. **Privacy by default.** No raw document text in logs; private data stays
+4. **Reviewed configuration is code.** Manual decisions that change data
+   handling (template alias families) live in `configs/`, are versioned,
+   carry their evidence, and are checked against the data on every build.
+5. **One tokenizer everywhere.** Training, evaluation and inference all use
+   `finguard.Tokenizer.v1`; a saved model records it in its config.
+6. **Privacy by default.** No raw document text in logs; private data stays
    in git-ignored folders.

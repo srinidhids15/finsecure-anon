@@ -1,0 +1,98 @@
+{
+  "description": "Manually reviewed template aliases for the Mendeley training workbook. Each family lists template groups (ids from finguard.data.split.cluster_templates) that are variants of the same underlying document, so they must stay in one split partition. 'opening' must match the start of the group's representative normalised template; the build fails if an id or opening no longer matches. Reviewed 2026-10-14 from the training workbook only (the official test workbook was not opened). Evidence: full normalised templates were read side by side.",
+  "families": [
+    {
+      "name": "loan_application",
+      "members": [
+        {"group": "t4871bdb984", "opening": "Dear <name>, we have received your loan application at <company>"},
+        {"group": "ted2bb13dd7", "opening": "Dear <name>, your recent loan application at <company>"}
+      ],
+      "reason": "Sentence-by-sentence paraphrase: same facts (review status, submission date, address/email/phone/SSN, credit card, status URL) in the same order; identical entity-slot sequence. Word similarity 0.746."
+    },
+    {
+      "name": "subscription_and_cfo_audit",
+      "members": [
+        {"group": "t70d5a61ad1", "opening": "Dear <name>, your subscription with <company> is up for renewal"},
+        {"group": "tf9fd01c909", "opening": "Dear <name>, your subscription with <company> is approaching its renewal date"},
+        {"group": "tba5a9c1d21", "opening": "Dear <name>, your subscription with <company> is up for renewal"},
+        {"group": "t41fa5c5a18", "opening": "During the audit of the financial statements for <company>"}
+      ],
+      "reason": "t70d5a61ad1 and tf9fd01c909 are paraphrases (similarity 0.738, identical slot sequence). tba5a9c1d21 is a generator concatenation defect: it contains t70d5a61ad1 verbatim followed, with no space ('support team.During'), by a paraphrase of the CFO-audit template t41fa5c5a18 (similarity 0.571). Separating any of these would put a whole template on both sides of a split."
+    },
+    {
+      "name": "onboarding_welcome",
+      "members": [
+        {"group": "tddb47ee9a1", "opening": "We are pleased to welcome <name> to <company>"},
+        {"group": "t51aadb79d4", "opening": "We are excited to welcome <name> to <company>"}
+      ],
+      "reason": "Sentence-by-sentence paraphrase with identical slot sequence. Word similarity 0.737."
+    },
+    {
+      "name": "service_contract",
+      "members": [
+        {"group": "tb47d68eac5", "opening": "This Service Contract between <company> and <name>"},
+        {"group": "t5e337762ce", "opening": "This agreement between <company> and <name>"}
+      ],
+      "reason": "Sentence-by-sentence paraphrase with identical slot sequence. Word similarity 0.710."
+    },
+    {
+      "name": "insurance_claim",
+      "members": [
+        {"group": "t168c7d27f2", "opening": "Insurance claim #CLM0 has been initiated by <name> for <company>"},
+        {"group": "t8ff6b7dd96", "opening": "Insurance claim #CLM0 has been initiated by <name> with <company>"}
+      ],
+      "reason": "Sentence-by-sentence paraphrase with identical slot sequence. Word similarity 0.690."
+    },
+    {
+      "name": "security_breach",
+      "members": [
+        {"group": "t34558a84d7", "opening": "We regret to inform you that a security breach was detected"},
+        {"group": "t25637ea719", "opening": "A security incident has been detected on the systems of <company>"}
+      ],
+      "reason": "Sentence-by-sentence paraphrase (breach notice, exposed data, IP address, card, updates URL, facility address) with identical slot sequence. Word similarity 0.630."
+    },
+    {
+      "name": "invoice_payment",
+      "members": [
+        {"group": "t75676fa10b", "opening": "This is a confirmation that the payment for the invoice number INV-0"},
+        {"group": "t65ef30198e", "opening": "We hereby confirm that the payment for invoice INV-0"}
+      ],
+      "reason": "Paraphrase with the same facts in the same order; same slot multiset. Word similarity 0.585."
+    },
+    {
+      "name": "account_creation",
+      "members": [
+        {"group": "te0129971be", "opening": "Dear <name>, thank you for creating a new account with <company>"},
+        {"group": "tcad9f0c7a0", "opening": "Dear <name>, we are pleased to confirm the creation of your new account"}
+      ],
+      "reason": "Paraphrase with the same facts; same slot multiset (SSN sentence moved). Word similarity 0.527."
+    },
+    {
+      "name": "customer_feedback",
+      "members": [
+        {"group": "tcda4a3a527", "opening": "Customer <name> from <company>, located at <address>, has submitted feedback"},
+        {"group": "t74360b80dc", "opening": "Customer feedback has been received from <name> representing <company>"}
+      ],
+      "reason": "Paraphrase: feedback about a card transaction, contact email/phone, SSN, submission URL. Word similarity 0.495."
+    },
+    {
+      "name": "tax_filing_confirmation",
+      "members": [
+        {"group": "tdd4d4cf13e", "opening": "Subject: Annual Tax Filing Confirmation"},
+        {"group": "t02744b86de", "opening": "To: <name> SSN: <ssn> TIN: <ssn>"},
+        {"group": "t41986167dc", "opening": "To Whom It May Concern, This letter is to confirm that <name>"}
+      ],
+      "reason": "Three versions of one letter: tax return for fiscal year ending March, SSN/TIN, three-line income breakdown including salary from <company>, total tax, payment by credit card, contact email/phone, URL, confidentiality notice. Word similarity 0.22-0.42 because of different headers and wording; content and order match."
+    }
+  ],
+  "reviewed_not_aliased": [
+    {
+      "groups": ["t16a4a8e6b0", "t65ba36c62f"],
+      "reason": "Both are audit reports on standalone financial statements, but with different content (audit procedures/opinion vs key audit matters on PP&E). Word similarity 0.211."
+    },
+    {
+      "groups": ["t36afe448dc", "tbfa2485fe4"],
+      "reason": "Different documents: internal-controls review vs tax-compliance review. Word similarity 0.106."
+    }
+  ]
+}

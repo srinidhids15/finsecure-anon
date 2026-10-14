@@ -20,7 +20,7 @@ Every phase adds unit tests, and its results are reported exactly as they ran.
 - [x] Root cause of misaligned offsets found (mojibake) and repaired in text only
 - [x] Per-class statistics and invalid-record report (before and after repair)
 - [x] Template-grouped train/validation split from the training file; test set preserved
-- [ ] Trailing newline in credit_card spans: normalise gold *and* predicted spans in the conversion/evaluation layer (Phases 4-5)
+- [x] Trailing newline in credit_card spans: `finguard.canonical` (applied in Phases 4-5)
 
 ## Phase 3: Rule-based detection ✅
 - [x] `Entity` output type and `Detector` protocol (stable interface for NER/hybrid)
@@ -31,12 +31,31 @@ Every phase adds unit tests, and its results are reported exactly as they ran.
 - [x] Synthetic unit tests: valid/invalid, punctuation, multiline, adjacency, Unicode, offsets
 - [x] docs/RULES.md; dataset issues 6-7 recorded in docs/DATASET.md
 
+## Pre-Phase 4: NER dataset readiness ✅
+- [x] URL gap investigated on the training workbook: one symptom of generator dot deletion (16,607 unlabelled values across email/url/address/name)
+- [x] `dot_dropped_variant` correction layer with provenance report; 0 ambiguous cases; raw files and Phase 2 outputs unchanged
+- [x] Robust template key (29 templates → 27 groups); Phase 2 split found to share templates
+- [x] Three-way template-disjoint split (21/3/3 groups; 37,500/3,750/3,750 rows), deterministic
+- [x] `finguard.canonical`: trailing-whitespace policy for gold and predictions
+- [ ] Decide: apply the correction rule to the official test set at final evaluation, or report it uncorrected
+- [x] Paraphrased templates: resolved by reviewed alias families (threshold kept at 0.9)
+
+## Pre-training readiness checkpoint ✅
+- [x] All template-group pairs reviewed; 10 alias families with evidence in `configs/template_aliases.json`
+- [x] Generator concatenation defect found (issue 12) and aliased with both source templates
+- [x] Stratified, seeded split of 14 units: both evaluation partitions hold a high- and a low-frequency unit (35,000 / 5,000 / 5,000)
+- [x] Record-weighted and group-level class distributions per partition
+- [x] Alignment audit by label and failure pattern; `finguard.Tokenizer.v1` → 0 misaligned gold spans
+- [x] Tokenizer persisted (config + entry point); save/reload reproduces token offsets
+- [x] Tests: alias groups never cross partitions, reproducibility, high-frequency coverage, strict alignment, card canonicalisation, official test workbook never opened
+
 ## Phase 4: Evaluation
-- [ ] Exact-match and partial-overlap P / R / F1, per label and overall
-- [ ] Score the rule-based baseline on the validation split
+- [ ] Exact-match and partial-overlap P / R / F1, per label and overall, on canonicalised spans
+- [ ] Report group-level (per split unit, macro-averaged) scores next to record-weighted scores
+- [ ] Score the rule-based baseline on `ner/validation.jsonl`
 
 ## Phase 5: spaCy NER training and inference
-- [ ] Convert to `DocBin`, report spans dropped by token misalignment
+- [ ] Convert to `DocBin` with canonical spans and `finguard.Tokenizer.v1`; fail on any misaligned span
 - [ ] Train on the train split, select the model on validation
 - [ ] `ner.inference` returns `Span` objects
 

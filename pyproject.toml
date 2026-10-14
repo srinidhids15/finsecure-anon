@@ -24,6 +24,11 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8,<9"]
 
+# Lets spacy.load() find FinGuard's tokenizer in a saved model's config
+# without an explicit "import finguard.ner.tokenizer".
+[project.entry-points.spacy_tokenizers]
+"finguard.Tokenizer.v1" = "finguard.ner.tokenizer:create_finguard_tokenizer"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

@@ -57,3 +57,30 @@ def compute_statistics(examples: Sequence[Example]) -> dict:
         "spans_per_record": _summary(spans_per_record),
         "per_class": per_class,
     }
+
+
+def class_distribution(examples: Sequence[Example]) -> dict[str, float]:
+    """Record-weighted class distribution: each class's share of all spans.
+
+    Large groups contribute in proportion to their size.
+    """
+    counts = Counter(s.label for ex in examples for s in ex.spans)
+    total = sum(counts.values())
+    return {label: round(counts[label] / total, 4) if total else 0.0 for label in ENTITY_LABELS}
+
+
+def group_level_class_distribution(examples: Sequence[Example]) -> dict[str, float]:
+    """Group-level class distribution: the mean of each group's own class shares.
+
+    Every group (``Example.group``) counts once, whatever its size, so one
+    very large template cannot dominate the summary.
+    """
+    by_group: dict[str, list[Example]] = defaultdict(list)
+    for ex in examples:
+        by_group[ex.group].append(ex)
+    if not by_group:
+        return {label: 0.0 for label in ENTITY_LABELS}
+    shares = [class_distribution(members) for members in by_group.values()]
+    return {
+        label: round(sum(s[label] for s in shares) / len(shares), 4) for label in ENTITY_LABELS
+    }
