@@ -87,11 +87,19 @@ Every phase adds unit tests, and its results are reported exactly as they ran.
 - [x] 100,000-character input limit; localhost-only server, no usage stats, generic browser errors
 - [x] Unit tests + `AppTest` tests (stub and real detector); freeze still verifies
 
-## Phase 8: PDF processing
-- [ ] Text extraction (PyMuPDF; pdfplumber for tables)
-- [ ] Detect scanned PDFs with no text layer
-- [ ] Redacted PDF output
-- [ ] PDF upload in the app; temporary files cleaned up
+## Phase 8: PDF detection and redaction (text-based PDFs) ✅
+- [x] PyMuPDF 1.28.2 APIs inspected; redaction removal rule measured (glyph centre in rectangle)
+- [x] Validation: signature, size/page/character limits, malformed/repaired, encrypted, empty
+- [x] Page conditions: scanned/image-only, vector-only, rotation, rotated/vertical/invisible/off-page text, unmapped glyphs, trace cross-check → rejected; images on text pages noted
+- [x] Hidden content: annotations, links, fields, metadata, XMP, embedded files, JavaScript, actions, outlines, structure tree removed before extraction; layers and XFA rejected
+- [x] Per-page text with per-character geometry; detection per page with the frozen hybrid detector
+- [x] Mapping via `anonymize` (validation + canonicalisation), one rect per line, collateral pre-check; no text search
+- [x] Black-fill redactions removing text; `garbage=4` in-memory save; source bytes untouched
+- [x] Independent verification (reopen, re-extract); output withheld on any failure
+- [x] App PDF tab: summary, entity/page/hidden-content tables, preview, PDF/CSV/JSON downloads; stale-upload invalidation
+- [x] Synthetic PDF tests incl. wrong-page regression, overlay-not-redaction, collateral detection; freeze still verifies
+- [ ] OCR for scanned pages (not started)
+- [ ] Batch processing (not started)
 
 ## Phase 9: Documentation and final evaluation
 - [ ] Final test-set results, limitations, viva notes

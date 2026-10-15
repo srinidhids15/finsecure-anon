@@ -47,6 +47,10 @@ component can be swapped or tested in isolation.
                                           ─► interface.highlight (escaped view) / workflow.entity_rows (table)
                                           ─► interface.workflow.anonymize_scan ─► anonymization.anonymize
                                           ─► interface.exports (TXT / CSV / JSON, in memory, verified results only)
+                       PDF tab ─► interface.pdf_workflow.run_pdf ─► pdf.pipeline.process_pdf (in memory):
+                                  pdf.validate ─► pdf.redact.sanitize_document ─► pdf.extract (text + per-char geometry, per page)
+                                  ─► HybridDetector (per page) ─► pdf.mapping (via anonymize: validate + canonicalise; per-line rects)
+                                  ─► pdf.redact.apply_redactions + save_pdf ─► pdf.verify (reopen, re-extract) ─► pdf.report
                          pdf.redact(pdf, spans)                ──► redacted PDF
 
  Training/evaluation path (offline):
@@ -98,9 +102,15 @@ component can be swapped or tested in isolation.
 | `interface.workflow` | Input limits, scan/anonymize with safe user-facing errors, per-session results tied to the scanned text (docs/APP.md) | text → `ScanRecord` → `AnonRecord` |
 | `interface.highlight` | HTML-escaped view with labelled `<mark>`s at detector offsets | text, `[Entity]` → HTML |
 | `interface.exports` | TXT / CSV / JSON downloads from verified results, no original values | `AnonymizationResult` → bytes |
-| `pdf.extract` | PDF text extraction (PyMuPDF, pdfplumber) | PDF → text |
-| `pdf.redact` | Draw redaction boxes over spans | PDF, spans → PDF |
-| `app/streamlit_app.py` | Streamlit rendering only; calls `interface` | text → display + downloads |
+| `pdf.validate` | Size/signature checks, safe open (rejects encrypted, repaired, over-limit), hidden-content inventory, layered/XFA rejection (docs/PDF.md) | bytes → `Document`, `HiddenContent` |
+| `pdf.extract` | Per-page detection text with a parallel per-character geometry map; unsupported page conditions | page → `PageText` |
+| `pdf.mapping` | Entities → one rect per line (validation/canonicalisation via `anonymize`); collateral pre-check | `PageText`, `[Entity]` → `PageMapping` |
+| `pdf.redact` | Remove annotations/links/fields/metadata/JS/...; apply black redactions removing text; save in memory | `Document` → bytes |
+| `pdf.verify` | Reopen and re-extract: fills, targeted glyphs gone, untargeted glyphs kept, hidden content gone | bytes → `PdfVerification` |
+| `pdf.pipeline` | Orchestration; output only if fully verified | bytes, detector → `PdfResult` |
+| `pdf.report` | PDF entity CSV / JSON summary without values | `PdfResult` → bytes |
+| `interface.pdf_workflow` | Safe-error wrapper, per-session PDF results keyed by upload digest, page preview | bytes → `PdfRecord` |
+| `app/streamlit_app.py` | Streamlit rendering only (Text and PDF tabs); calls `interface` | text / PDF → display + downloads |
 
 ## Design rules
 

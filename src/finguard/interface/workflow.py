@@ -71,6 +71,10 @@ class SharedDetector:
         self._lock = threading.Lock()
         self.name = getattr(detector, "name", "detector")
 
+    def detect(self, text: str) -> list[Entity]:
+        with self._lock:
+            return list(self._detector.detect(text))
+
     def detect_with_count(self, text: str) -> tuple[list[Entity], int]:
         """Entities plus the number of candidates the merge policy suppressed."""
         with self._lock:

@@ -14,6 +14,8 @@ toolbarMode = "viewer"
 # Listen on this machine only. Pass --server.address to expose it deliberately.
 address = "localhost"
 headless = true
+# Matches finguard.pdf.validate.PdfLimits.max_bytes (20 MB).
+maxUploadSize = 20
 
 [theme]
 primaryColor = "#0F766E"

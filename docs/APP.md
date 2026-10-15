@@ -1,4 +1,4 @@
-# FinGuard app (Phase 7)
+# FinGuard app (Phases 7–8)
 
 A Streamlit interface for scanning plain text for PII, inspecting what was
 found and anonymizing it. It is a thin layer over existing components:
@@ -66,6 +66,42 @@ That file sets four things:
    locate the placeholder in the TXT file. The CSV and JSON do not contain
    detected values or document text.
 
+## PDF workflow (Phase 8)
+
+The **PDF document** tab runs `finguard.pdf.pipeline.process_pdf` on the
+uploaded bytes, in memory. The method is described in docs/PDF.md.
+
+1. **Upload** one PDF (`.pdf` only; up to 20 MB and 100 pages).
+2. **Detect and redact PDF.** Rejected documents show an error naming the
+   page and condition, for example "page 2: no extractable text; the page is
+   an image (scanned?) and OCR is not supported". Nothing is offered for
+   download.
+3. **Results** for accepted documents:
+   - **Metrics:** pages, entities, regions redacted, hidden items removed,
+     and per-label counts.
+   - **Three status lines:** *Redaction applied*; *Targeted text removal
+     verified*; *Complete PII removal is not guaranteed*.
+   - **Tabs:** entities, pages, hidden content, and a preview of the
+     verified output.
+
+   If mapping, redaction or verification fails, an error and the
+   non-sensitive problem list are shown instead, and **no PDF download** is
+   offered.
+4. **Downloads:**
+
+   | file | when | content |
+   |---|---|---|
+   | `finguard_redacted.pdf` | verified only | the redacted PDF |
+   | `finguard_pdf_entity_report.csv` | always | `index, page, label, start, end, detected_end, regions, sources, status, reason` |
+   | `finguard_pdf_summary.json` | always | page diagnostics, entities with rectangles, hidden content found and removed, verification checks |
+
+   Offsets are positions in that page's extracted text. No values are
+   included.
+
+PDF results are keyed by the SHA-256 digest of the uploaded bytes. Uploading
+a different file, or removing it, clears them. They are stored under their
+own session key, so they never mix with text-scan results.
+
 ## Session state
 
 - Each browser session keeps its own scan and anonymization result in
@@ -80,8 +116,10 @@ That file sets four things:
 
 ## Privacy
 
-- **Local processing.** Text is processed by the local Python process; no
-  external service is called.
+- **Local processing.** Text and PDFs are processed by the local Python
+  process; no external service is called. Uploaded PDFs are read into
+  memory and are never written to disk. The redacted PDF is generated in
+  memory.
 - **Nothing is persisted.** The app prints, logs and writes nothing.
   Submitted text exists only in the session's memory until the input
   changes, **Clear** is pressed or the session ends.
@@ -96,8 +134,8 @@ That file sets four things:
 
 ## Limitations
 
-- **Plain text only.** There is no PDF upload or redaction and no batch
-  processing.
+- **Text and text-based PDFs only.** There is no OCR for scanned PDFs and
+  no batch processing (see docs/PDF.md for the PDF scope).
 - **The detector makes mistakes,** and missed PII stays in the output. On
   the synthetic sample, the real detector:
   - labels the header "SAMPLE BANK" as a phone number;

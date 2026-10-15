@@ -11,7 +11,8 @@ detector, see [docs/RULES.md](docs/RULES.md)), dataset readiness and 4 (spaCy NE
 training, see [docs/NER.md](docs/NER.md)) and 5 (evaluation and hybrid detection,
 see [docs/EVALUATION.md](docs/EVALUATION.md)) and 6 (text anonymization, see
 [docs/ANONYMIZATION.md](docs/ANONYMIZATION.md)) and 7 (Streamlit app, see
-[docs/APP.md](docs/APP.md)) are done. PDF handling comes in a later phase. See
+[docs/APP.md](docs/APP.md)) and 8 (text-based PDF redaction, see [docs/PDF.md](docs/PDF.md))
+are done. OCR and batch processing are not implemented. See
 [docs/DEVELOPMENT_CHECKLIST.md](docs/DEVELOPMENT_CHECKLIST.md).
 
 ## Requirements
@@ -81,8 +82,7 @@ mismatched or overlapping spans raise an error instead of producing doubtful
 output. Every result is checked to confirm that each detected span, and
 only that span, was replaced at the right offsets. This does **not**
 guarantee that all PII was removed, because PII the detector misses stays
-in the text. This works on plain text only; there is no PDF redaction or UI
-yet. Details: [docs/ANONYMIZATION.md](docs/ANONYMIZATION.md).
+in the text. Details: [docs/ANONYMIZATION.md](docs/ANONYMIZATION.md).
 
 ## Using the app
 
@@ -105,8 +105,26 @@ streamlit run app/streamlit_app.py     # from the repository root; opens http://
 The app needs the trained model in `models/finguard_ner/model-best`. If it
 is missing, the app explains how to train it. Everything runs locally. The
 server listens on `localhost` only, and text is kept in the browser
-session's memory, not logged or saved. Plain text only: there is no PDF or
-batch processing. Details: [docs/APP.md](docs/APP.md).
+session's memory, not logged or saved. Details: [docs/APP.md](docs/APP.md).
+
+### PDF documents
+
+The **PDF document** tab accepts one text-based PDF of up to 20 MB and 100
+pages.
+- **Processing:** each page's text is extracted with exact character
+  positions, scanned by the same detector, and the detected glyphs are
+  **physically removed** and covered by black boxes. Annotations, links,
+  form fields, metadata, embedded files and JavaScript are removed too.
+- **Verification:** the result is reopened and checked. No text may remain
+  in any redacted region, and every other character must be unchanged.
+  Only then is it offered for download.
+- **Rejected:** scanned or image-only pages (no OCR), rotated or invisible
+  text, layered PDFs, XFA forms and encrypted files, with a message
+  explaining why.
+- **Not guaranteed:** complete PII removal. Undetected PII and text inside
+  images remain.
+
+Details: [docs/PDF.md](docs/PDF.md).
 
 ## Running
 
@@ -114,6 +132,7 @@ batch processing. Details: [docs/APP.md](docs/APP.md).
 python -m pytest                       # run all unit tests (real-data tests skip if data is absent)
 python -m pytest tests/test_schema.py  # run one test file
 python -m pytest tests/test_app.py     # app tests (Streamlit AppTest, synthetic input)
+python -m pytest tests/test_pdf.py tests/test_app_pdf.py   # PDF tests (synthetic PDFs)
 streamlit run app/streamlit_app.py     # the FinGuard app at http://localhost:8501
 ```
 
@@ -132,7 +151,7 @@ streamlit run app/streamlit_app.py     # the FinGuard app at http://localhost:85
 │   ├── evaluation/         # precision / recall / F1
 │   ├── anonymization/      # placeholder replacement, audit report, output verification
 │   ├── interface/          # app workflow, session state, escaped highlighting, exports (no Streamlit)
-│   └── pdf/                # extract text from PDFs, write redacted PDFs
+│   └── pdf/                # validate, geometry-mapped extraction, redaction, verification
 ├── app/                    # Streamlit app: rendering only (streamlit_app.py)
 ├── .streamlit/config.toml  # app settings: localhost only, no usage stats, generic errors
 ├── configs/                # reviewed configuration (template alias families)
