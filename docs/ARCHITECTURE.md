@@ -41,7 +41,7 @@ component can be swapped or tested in isolation.
    └────────────────────────────────────►│ ner.inference      │──► ner entities ► detection.hybrid.merge
                                          └────────────────────┘                │
                                                                                 ▼ final spans
-                         anonymization.anonymize(text, spans) ──► anonymized text
+                         anonymization.anonymize(text, entities) ──► sanitized text + audit report (verified)
                          pdf.redact(pdf, spans)                ──► redacted PDF
 
  Training/evaluation path (offline):
@@ -83,7 +83,10 @@ component can be swapped or tested in isolation.
 | `ner.train` | Pre-flight checks, config-driven `spacy train` (`configs/ner.cfg`), provenance manifest (see docs/NER.md) | `.spacy` → `models/finguard_ner/` |
 | `ner.inference` | `NERDetector`: trained model behind the `Detector` interface | text → `[Entity]` |
 | `detection.hybrid` | `merge()` + `HybridDetector`: dedupe, card-block precedence, rule priority for structured labels, NER otherwise; suppressions recorded (docs/EVALUATION.md) | text, rule + NER entities → non-overlapping `[Entity]` + diagnostics |
-| `anonymization.anonymizer` | Replace spans (tag, mask or Faker) | text, `[Span]` → text |
+| `anonymization.anonymizer` | `anonymize()`: validate, canonicalise, reject overlaps, single-pass placeholder replacement (docs/ANONYMIZATION.md) | text, hybrid `[Entity]` → `AnonymizationResult` |
+| `anonymization.placeholders` | Read-only label → placeholder policy; overrides for known labels only | — |
+| `anonymization.result` | `Redaction`, `AnonymizationResult`, `VerificationReport`: offsets and labels, no original values | — |
+| `anonymization.verify` | Rebuild the output from original text + recorded redactions; detected-span replacement only, never a completeness claim | text, entities, result → `VerificationReport` |
 | `evaluation.metrics` | Exact canonical-span P/R/F1: micro, macro, per label, per group; typed FP/FN | gold, predicted → `EvaluationResult` |
 | `evaluation.run` | Scores rules, NER and hybrid on the same records; reports JSON/CSV/MD (CLI) | dataset → `reports/evaluation/<dataset>/` |
 | `evaluation.freeze` | Hashes code, config, model and policy; held-out runs refuse if anything changed | → `configs/evaluation_freeze.json` |
@@ -109,4 +112,7 @@ component can be swapped or tested in isolation.
 5. **One tokenizer everywhere.** Training, evaluation and inference all use
    `finguard.Tokenizer.v1`; a saved model records it in its config.
 6. **Privacy by default.** No raw document text in logs; private data stays
-   in git-ignored folders.
+   in git-ignored folders. Anonymization reports, errors and reprs carry
+   labels and offsets, never original values.
+7. **One conflict policy.** Overlaps are resolved only in `detection.hybrid`;
+   the anonymizer rejects overlapping input instead of resolving it again.

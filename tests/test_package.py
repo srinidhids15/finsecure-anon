@@ -32,7 +32,12 @@ MODULES = [
     "finguard.evaluation.freeze",
     "finguard.evaluation.metrics",
     "finguard.evaluation.run",
+    "finguard.anonymization",
     "finguard.anonymization.anonymizer",
+    "finguard.anonymization.errors",
+    "finguard.anonymization.placeholders",
+    "finguard.anonymization.result",
+    "finguard.anonymization.verify",
     "finguard.pdf.extract",
     "finguard.pdf.redact",
 ]

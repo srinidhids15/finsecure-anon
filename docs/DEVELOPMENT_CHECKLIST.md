@@ -66,9 +66,17 @@ Every phase adds unit tests, and its results are reported exactly as they ran.
 - [ ] Partial-overlap metric (optional)
 - [ ] Address the `name` errors found on the internal test (sentence-initial words, document titles) as a new, validation-driven attempt
 
-## Phase 6: Anonymization
-- [ ] Tag / mask / Faker strategies; right-to-left replacement
-- [ ] Consistent fake values for repeated entities (optional)
+## Phase 6: Text anonymization ✅
+- [x] Interfaces inspected; anonymizer consumes the frozen hybrid detector's `Entity` output (no detection, no second conflict policy)
+- [x] Label placeholders (read-only default, overrides for known labels, unknown label → error)
+- [x] Offset validation, source-text match, canonical spans (trailing whitespace kept outside the placeholder)
+- [x] Whole credit-card block → one placeholder; trailing newline preserved
+- [x] Single left-to-right pass with recorded output offsets; inputs not mutated
+- [x] Clear errors for invalid offsets, mismatched text, unknown labels, overlaps
+- [x] Audit report without original values; nothing logged or written to disk
+- [x] Output verification from original text + recorded operations; completeness explicitly not claimed
+- [x] Synthetic unit tests + one end-to-end test with the real hybrid detector; freeze still verifies
+- [ ] Mask / Faker pseudonymisation strategies (optional, not started)
 
 ## Phase 7: PDF processing
 - [ ] Text extraction (PyMuPDF; pdfplumber for tables)

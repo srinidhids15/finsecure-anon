@@ -9,8 +9,9 @@ entities like names and addresses), then replaces what it finds.
 **Status:** Phases 1 (setup), 2 (dataset ingestion and audit), 3 (rule-based
 detector, see [docs/RULES.md](docs/RULES.md)), dataset readiness and 4 (spaCy NER
 training, see [docs/NER.md](docs/NER.md)) and 5 (evaluation and hybrid detection,
-see [docs/EVALUATION.md](docs/EVALUATION.md)) are done. Anonymization, PDF handling
-and the UI come in later phases. See
+see [docs/EVALUATION.md](docs/EVALUATION.md)) and 6 (text anonymization, see
+[docs/ANONYMIZATION.md](docs/ANONYMIZATION.md)) are done. PDF handling and the UI
+come in later phases. See
 [docs/DEVELOPMENT_CHECKLIST.md](docs/DEVELOPMENT_CHECKLIST.md).
 
 ## Requirements
@@ -63,6 +64,26 @@ frozen system in `configs/evaluation_freeze.json`; see [docs/EVALUATION.md](docs
 
 Training details, settings and the inference API: [docs/NER.md](docs/NER.md).
 
+## Anonymizing text
+
+```python
+from finguard.anonymization import detect_and_anonymize
+
+result = detect_and_anonymize(text)   # frozen hybrid detector + placeholder replacement
+print(result.sanitized_text)          # "Dear [NAME REDACTED], call [PHONE NUMBER REDACTED] ..."
+print(result.to_dict())               # audit report: labels, offsets, placeholders; no original values
+```
+
+Each detected entity is replaced by a placeholder for its label. A
+credit-card block (holder, number, expiry and CVC lines) becomes a single
+`[CREDIT CARD REDACTED]`, and the newline after it is kept. Invalid,
+mismatched or overlapping spans raise an error instead of producing doubtful
+output. Every result is checked to confirm that each detected span, and
+only that span, was replaced at the right offsets. This does **not**
+guarantee that all PII was removed, because PII the detector misses stays
+in the text. This works on plain text only; there is no PDF redaction or UI
+yet. Details: [docs/ANONYMIZATION.md](docs/ANONYMIZATION.md).
+
 ## Running
 
 ```bash
@@ -84,7 +105,7 @@ streamlit run app/streamlit_app.py     # placeholder UI at http://localhost:8501
 │   ├── detection/          # base.py (Detector interface), rules.py (regex), hybrid.py
 │   ├── ner/                # spaCy training and inference
 │   ├── evaluation/         # precision / recall / F1
-│   ├── anonymization/      # replace detected spans in text
+│   ├── anonymization/      # placeholder replacement, audit report, output verification
 │   └── pdf/                # extract text from PDFs, write redacted PDFs
 ├── app/                    # Streamlit frontend (calls the package only)
 ├── configs/                # reviewed configuration (template alias families)
@@ -103,6 +124,8 @@ For how the parts fit together, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
   `data/samples/`.
 - Only small, fully synthetic examples are committed, in `data/samples/`.
 - Raw document text is not logged by default (`config.LOG_RAW_TEXT = False`).
+- The anonymizer logs nothing and writes no files; its reports hold labels and
+  offsets, never original values.
 
 ## License and attribution
 
