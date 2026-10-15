@@ -10,8 +10,8 @@ entities like names and addresses), then replaces what it finds.
 detector, see [docs/RULES.md](docs/RULES.md)), dataset readiness and 4 (spaCy NER
 training, see [docs/NER.md](docs/NER.md)) and 5 (evaluation and hybrid detection,
 see [docs/EVALUATION.md](docs/EVALUATION.md)) and 6 (text anonymization, see
-[docs/ANONYMIZATION.md](docs/ANONYMIZATION.md)) are done. PDF handling and the UI
-come in later phases. See
+[docs/ANONYMIZATION.md](docs/ANONYMIZATION.md)) and 7 (Streamlit app, see
+[docs/APP.md](docs/APP.md)) are done. PDF handling comes in a later phase. See
 [docs/DEVELOPMENT_CHECKLIST.md](docs/DEVELOPMENT_CHECKLIST.md).
 
 ## Requirements
@@ -84,12 +84,37 @@ guarantee that all PII was removed, because PII the detector misses stays
 in the text. This works on plain text only; there is no PDF redaction or UI
 yet. Details: [docs/ANONYMIZATION.md](docs/ANONYMIZATION.md).
 
+## Using the app
+
+```bash
+streamlit run app/streamlit_app.py     # from the repository root; opens http://localhost:8501
+```
+
+1. Paste text, or click **Load synthetic sample**. The limit is 100,000
+   characters.
+2. Click **Scan for PII**. You see counts per label, the text with each
+   detection highlighted at its exact offsets, and a table of labels,
+   offsets and detector sources.
+3. Click **Anonymize detected entities**. The sanitized text appears only
+   after its verification passes, together with a reminder that missed PII
+   may remain.
+4. Download the sanitized text (`.txt`), the entity report (`.csv`) or the
+   redaction summary (`.json`). The reports hold labels, offsets and
+   placeholders, never the detected values.
+
+The app needs the trained model in `models/finguard_ner/model-best`. If it
+is missing, the app explains how to train it. Everything runs locally. The
+server listens on `localhost` only, and text is kept in the browser
+session's memory, not logged or saved. Plain text only: there is no PDF or
+batch processing. Details: [docs/APP.md](docs/APP.md).
+
 ## Running
 
 ```bash
 python -m pytest                       # run all unit tests (real-data tests skip if data is absent)
 python -m pytest tests/test_schema.py  # run one test file
-streamlit run app/streamlit_app.py     # placeholder UI at http://localhost:8501
+python -m pytest tests/test_app.py     # app tests (Streamlit AppTest, synthetic input)
+streamlit run app/streamlit_app.py     # the FinGuard app at http://localhost:8501
 ```
 
 ## Project layout
@@ -106,8 +131,10 @@ streamlit run app/streamlit_app.py     # placeholder UI at http://localhost:8501
 │   ├── ner/                # spaCy training and inference
 │   ├── evaluation/         # precision / recall / F1
 │   ├── anonymization/      # placeholder replacement, audit report, output verification
+│   ├── interface/          # app workflow, session state, escaped highlighting, exports (no Streamlit)
 │   └── pdf/                # extract text from PDFs, write redacted PDFs
-├── app/                    # Streamlit frontend (calls the package only)
+├── app/                    # Streamlit app: rendering only (streamlit_app.py)
+├── .streamlit/config.toml  # app settings: localhost only, no usage stats, generic errors
 ├── configs/                # reviewed configuration (template alias families)
 ├── tests/                  # pytest unit tests
 ├── docs/                   # architecture notes and development checklist

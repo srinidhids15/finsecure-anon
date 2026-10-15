@@ -42,6 +42,11 @@ component can be swapped or tested in isolation.
                                          └────────────────────┘                │
                                                                                 ▼ final spans
                          anonymization.anonymize(text, entities) ──► sanitized text + audit report (verified)
+
+ App: app/streamlit_app.py (render only) ─► interface.workflow.scan ─► HybridDetector (cached, shared, locked)
+                                          ─► interface.highlight (escaped view) / workflow.entity_rows (table)
+                                          ─► interface.workflow.anonymize_scan ─► anonymization.anonymize
+                                          ─► interface.exports (TXT / CSV / JSON, in memory, verified results only)
                          pdf.redact(pdf, spans)                ──► redacted PDF
 
  Training/evaluation path (offline):
@@ -90,9 +95,12 @@ component can be swapped or tested in isolation.
 | `evaluation.metrics` | Exact canonical-span P/R/F1: micro, macro, per label, per group; typed FP/FN | gold, predicted → `EvaluationResult` |
 | `evaluation.run` | Scores rules, NER and hybrid on the same records; reports JSON/CSV/MD (CLI) | dataset → `reports/evaluation/<dataset>/` |
 | `evaluation.freeze` | Hashes code, config, model and policy; held-out runs refuse if anything changed | → `configs/evaluation_freeze.json` |
+| `interface.workflow` | Input limits, scan/anonymize with safe user-facing errors, per-session results tied to the scanned text (docs/APP.md) | text → `ScanRecord` → `AnonRecord` |
+| `interface.highlight` | HTML-escaped view with labelled `<mark>`s at detector offsets | text, `[Entity]` → HTML |
+| `interface.exports` | TXT / CSV / JSON downloads from verified results, no original values | `AnonymizationResult` → bytes |
 | `pdf.extract` | PDF text extraction (PyMuPDF, pdfplumber) | PDF → text |
 | `pdf.redact` | Draw redaction boxes over spans | PDF, spans → PDF |
-| `app/streamlit_app.py` | User interface; **no logic of its own** | upload → display |
+| `app/streamlit_app.py` | Streamlit rendering only; calls `interface` | text → display + downloads |
 
 ## Design rules
 

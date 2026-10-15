@@ -38,6 +38,11 @@ MODULES = [
     "finguard.anonymization.placeholders",
     "finguard.anonymization.result",
     "finguard.anonymization.verify",
+    "finguard.interface",
+    "finguard.interface.exports",
+    "finguard.interface.highlight",
+    "finguard.interface.samples",
+    "finguard.interface.workflow",
     "finguard.pdf.extract",
     "finguard.pdf.redact",
 ]

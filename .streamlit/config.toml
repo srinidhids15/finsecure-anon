@@ -1,0 +1,19 @@
+# FinGuard app settings (loaded when `streamlit run` is started from the repository root).
+
+[browser]
+# Do not send usage statistics to Streamlit.
+gatherUsageStats = false
+
+[client]
+# Show generic error messages in the browser instead of exception details.
+showErrorDetails = "none"
+# Hide developer options (rerun, clear cache, deploy) from viewers.
+toolbarMode = "viewer"
+
+[server]
+# Listen on this machine only. Pass --server.address to expose it deliberately.
+address = "localhost"
+headless = true
+
+[theme]
+primaryColor = "#0F766E"

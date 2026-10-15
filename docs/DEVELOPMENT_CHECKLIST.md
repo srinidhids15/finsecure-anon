@@ -78,14 +78,20 @@ Every phase adds unit tests, and its results are reported exactly as they ran.
 - [x] Synthetic unit tests + one end-to-end test with the real hybrid detector; freeze still verifies
 - [ ] Mask / Faker pseudonymisation strategies (optional, not started)
 
-## Phase 7: PDF processing
+## Phase 7: Streamlit app (text) ✅
+- [x] `finguard.interface` (no Streamlit import): workflow, escaped highlighting, in-memory exports, synthetic sample
+- [x] App calls the frozen hybrid detector and `anonymize()`; no detection or replacement logic in the frontend
+- [x] Detector cached once per process (model only), lock-serialised; missing model / init / runtime errors shown without input text
+- [x] Scan → counts, highlighted text, entity table (no values) → anonymize → verified output → TXT / CSV / JSON
+- [x] Stale results cleared when the input changes; anonymization tied to its scan; sessions isolated
+- [x] 100,000-character input limit; localhost-only server, no usage stats, generic browser errors
+- [x] Unit tests + `AppTest` tests (stub and real detector); freeze still verifies
+
+## Phase 8: PDF processing
 - [ ] Text extraction (PyMuPDF; pdfplumber for tables)
 - [ ] Detect scanned PDFs with no text layer
 - [ ] Redacted PDF output
-
-## Phase 8: Streamlit frontend
-- [ ] Upload text or PDF → show detections → download anonymized output
-- [ ] No raw text logging; temporary files cleaned up
+- [ ] PDF upload in the app; temporary files cleaned up
 
 ## Phase 9: Documentation and final evaluation
 - [ ] Final test-set results, limitations, viva notes
