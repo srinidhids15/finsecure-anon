@@ -136,7 +136,7 @@ with tab_text:
 
     scan_clicked = st.button("Scan for PII", type="primary", key="fg_scan", disabled=detector is None)
 
-    if scan_clicked:
+    if scan_clicked and detector is not None:
         try:
             workflow.validate_input(text)
             with st.spinner("Scanning…"):
@@ -192,11 +192,11 @@ with tab_text:
             anon = workflow.anonymize_scan(scan)
             workflow.store_anonymization(st.session_state, anon)
 
-        if anon is not None and not anon.verified:
+        result = anon.result if anon is not None and anon.verified else None
+        if anon is not None and result is None:
             st.error(anon.error or "Anonymization failed.", icon="⛔")
             st.caption("No sanitized output is shown or offered for download.")
-        elif anon is not None:
-            result = anon.result
+        elif result is not None:
             st.success(
                 f"Detected-span replacement verified: all {result.redaction_count} detected span(s) were replaced "
                 "with their placeholders, and all other text is unchanged.",
@@ -255,17 +255,21 @@ with tab_pdf:
     if pdf_stale:
         st.info("The uploaded file changed, so the previous PDF results were cleared.", icon="ℹ️")
 
-    if st.button("Detect and redact PDF", type="primary", key="fg_pdf_run",
-                 disabled=detector is None or not pdf_bytes):
+    pdf_clicked = st.button("Detect and redact PDF", type="primary", key="fg_pdf_run",
+                            disabled=detector is None or not pdf_bytes)
+    if pdf_clicked and detector is not None and pdf_bytes:
         with st.spinner("Processing PDF…"):
             pdf_record = pdf_workflow.run_pdf(detector, pdf_bytes)
         pdf_workflow.store_pdf(st.session_state, pdf_record)
 
-    if pdf_record is not None and pdf_record.error:
-        st.error(pdf_record.error, icon="⛔")
+    pdf_result = pdf_record.result if pdf_record is not None and not pdf_record.error else None
+    if pdf_record is not None and pdf_result is None:
+        st.error(pdf_record.error or "PDF processing failed. No output was produced.", icon="⛔")
         st.caption("No redacted PDF was produced.")
-    elif pdf_record is not None:
-        result = pdf_record.result
+    elif pdf_result is not None:
+        result = pdf_result
+        # Set only when the whole pipeline, including independent verification, succeeded.
+        verified_pdf = result.output if result.verified else None
         st.divider()
         st.markdown('<div class="fg-step">Step 2 · Results</div>', unsafe_allow_html=True)
         m1, m2, m3, m4 = st.columns(4)
@@ -273,11 +277,11 @@ with tab_pdf:
         m2.metric("Entities detected", len(result.entities), border=True)
         m3.metric("Regions redacted", result.regions_applied if result.verified else 0, border=True)
         m4.metric("Hidden items removed", sum(
-            v for k, v in (result.sanitization.to_dict() if result.sanitization else {}).items()
+            v for v in (result.sanitization.to_dict() if result.sanitization else {}).values()
             if isinstance(v, int) and not isinstance(v, bool)), border=True)
 
-        if result.verified:
-            v = result.verification
+        v = result.verification
+        if verified_pdf is not None and v is not None:
             st.success(f"Redaction applied: {v.regions_checked} region(s) were physically removed from the "
                        "page content and filled black.", icon="✅")
             st.success(f"Targeted text removal verified: the saved PDF was reopened; no text remains in any "
@@ -321,16 +325,16 @@ with tab_pdf:
                        "actions, outlines and the structure tree are removed from the output; their contents "
                        "were not scanned.")
         with t_preview:
-            if result.verified:
+            if verified_pdf is not None:
                 page_no = st.selectbox("Page", list(range(1, len(result.pages) + 1)), key="fg_pdf_preview_page")
-                st.image(pdf_workflow.preview_png(result.output, page_no), width="stretch")
+                st.image(pdf_workflow.preview_png(verified_pdf, page_no), width="stretch")
             else:
                 st.caption("No preview: the PDF was not verified.")
 
         st.markdown("**Downloads**")
         d1, d2, d3 = st.columns(3)
-        if result.verified:
-            d1.download_button("Redacted PDF (.pdf)", result.output, pdf_report.PDF_FILENAME, "application/pdf",
+        if verified_pdf is not None:
+            d1.download_button("Redacted PDF (.pdf)", verified_pdf, pdf_report.PDF_FILENAME, "application/pdf",
                                key="fg_pdf_dl", on_click="ignore", width="stretch")
         d2.download_button("Entity report (.csv)", pdf_report.entity_report_csv(result), pdf_report.PDF_CSV_FILENAME,
                            "text/csv", key="fg_pdf_dl_csv", on_click="ignore", width="stretch")
