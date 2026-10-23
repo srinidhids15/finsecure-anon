@@ -101,5 +101,14 @@ Every phase adds unit tests, and its results are reported exactly as they ran.
 - [ ] OCR for scanned pages (not started)
 - [ ] Batch processing (not started)
 
-## Phase 9: Documentation and final evaluation
-- [ ] Final test-set results, limitations, viva notes
+## Phase 9: Quality assurance and release readiness ✅
+- [x] Freeze verified before and after; detector, model, tokenizer, policy, metrics untouched; no held-out evaluation re-run
+- [x] PDF edge cases examined with byte-level synthetic PDFs. Supported and tested: ligatures, multi-character `ToUnicode`, Type 3 with `ToUnicode`, text over background images. Rejected: ligature-splitting boundaries, Type 3 or embedded fonts without Unicode maps, covered/clipped text, ActualText/Alt/E marked content
+- [x] Defects fixed: ActualText pages were scanned with the replacement text; Type 3 fonts without `ToUnicode` were accepted with glyph-name text; a model test failed when the dataset was absent
+- [x] Integrity tests: randomised multi-page PDFs (applied redactions, preserved text, no global search), session isolation, verification failure hides output, unsupported cases fail closed, silent MuPDF
+- [x] Clean-environment install and tests (with and without the model); app startup and smoke test from the clean copy
+- [x] Privacy audit: localhost binding, usage stats off, no app logging, in-memory uploads, fixed filenames, value-free reports, clean git history
+- [x] Headless-browser layout check at 1366 px and 390 px (no horizontal overflow); remaining visual checks listed in docs/APP.md
+- [ ] Distribute the selected model artifact (needed to verify the freeze and reported scores outside this machine)
+- [ ] Evaluation on real documents (performance on real text is unknown)
+- [ ] Optional: lock file for transitive dependencies

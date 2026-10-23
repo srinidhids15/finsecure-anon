@@ -15,6 +15,8 @@ line, and nothing between lines is covered.
 A mapping is **rejected** (and the document is not returned) when:
 
 * the span contains a visible character without geometry, or no glyph at all;
+* the span starts or ends inside a glyph that produced several characters
+  (a ligature): MuPDF can only remove the whole glyph;
 * a rectangle would also remove an untargeted visible character. MuPDF
   removes a character when the centre of its bounding box lies in a
   redaction rectangle, so any untargeted glyph whose centre falls inside a
@@ -104,6 +106,12 @@ def map_page(page: PageText, entities: Sequence[Entity]) -> PageMapping:
         if missing or not idx:
             mapped.append(PdfEntity(**base, status="rejected",
                                     reason="characters without page geometry" if idx else "no visible characters"))
+            continue
+        glyphs = {page.geoms[i].glyph for i in idx}
+        inside = set(range(r.start, r.end))
+        if any(g is not None and g.glyph in glyphs and i not in inside for i, g in enumerate(page.geoms)):
+            mapped.append(PdfEntity(**base, status="rejected",
+                                    reason="entity boundary splits a ligature or multi-character glyph"))
             continue
         by_line: dict[int, list[CharGeom]] = {}
         for i in idx:

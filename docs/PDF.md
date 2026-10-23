@@ -54,21 +54,61 @@ document is refused, because unprocessed pages could still hold PII:
 - **Vector-only pages:** pages with no text but vector graphics (text may be
   drawn as outlines).
 - **Rotation:** rotated pages, and rotated or vertical text.
-- **Hidden text:** invisible text (render modes 3/7 or opacity 0, e.g. OCR
-  layers), and text outside the visible page area.
-- **Unreadable text:** glyphs without a Unicode mapping (U+FFFD), and pages
-  where MuPDF's text trace shows more glyphs than the character extraction
-  returned.
+- **Hidden text:** extractable text that is not visible, which a reviewer
+  could not spot in the output:
+  - invisible text (render modes 3/7 or opacity 0, e.g. OCR layers);
+  - text outside the visible page area;
+  - text **covered by an image or filled shape drawn after it**, by draw
+    order (`get_bboxlog` indices = `get_texttrace` `seqno`). Filled shapes
+    count only if at least half a glyph high, so rules and strike-throughs
+    do not trigger it;
+  - text clipped out of view (fewer glyphs with `TEXT_CLIP`).
+- **Unreadable text:** text whose extracted characters cannot be trusted to
+  match what is drawn:
+  - glyphs without a Unicode mapping (U+FFFD, e.g. embedded fonts without
+    `ToUnicode`);
+  - **Type 3 fonts without `ToUnicode`**, whose glyph names give readable but
+    wrong text;
+  - pages where MuPDF's text trace shows more glyphs than the character
+    extraction returned.
+- **Replacement and alternate text:** marked-content `ActualText`, `Alt` or
+  `E` strings in page content or property lists. They are stored apart from
+  the glyphs and would survive glyph redaction. Such strings that exist only
+  in the logical-structure tree are removed with the tree, so they are
+  accepted.
 - **Unsupported structures:** optional-content layers and XFA forms.
 
 **Accepted with a note:** blank pages, and text pages that also contain
 images. Text *inside* images is neither detected nor redacted, and the
 report says so per page.
 
+## Edge cases (Phase 9 audit)
+
+Each case below was examined with synthetic PDFs written byte by byte
+(`tests/pdf_fixtures.raw_pdf`) and is covered by
+`tests/test_pdf_edge_cases.py`.
+
+| case | handling | evidence |
+|---|---|---|
+| Ligatures ("ﬁ", "ﬃ") | **Supported.** MuPDF expands a ligature into its letters: the first gets the glyph box, the rest get zero-width boxes at its right edge. Such characters share a `glyph` id. An entity containing whole ligatures is removed and verified | output text, content streams and region re-extraction |
+| Entity boundary inside a ligature | **Rejected** (`mapping_failed`, no output): MuPDF removes whole glyphs only. If the check were bypassed, verification would still fail | mutation check |
+| One code mapped to several characters (`ToUnicode`) | **Supported**, handled like a ligature, including boundary rejection | |
+| Type 3 font with `ToUnicode` | **Supported**: extraction, mapping, removal and verification | 7 glyphs removed, unrelated text intact |
+| Type 3 font without `ToUnicode` | **Rejected** | MuPDF read every glyph as its glyph name, giving readable but wrong text |
+| Embedded font without `ToUnicode` | **Rejected** (U+FFFD) | |
+| Text drawn over a background image | **Supported**; the image is kept, and pixels under a redaction are blanked | |
+| Text covered by a later image or opaque box | **Rejected**: hidden but extractable | |
+| Thin rule or strike-through over text | **Supported** (not treated as hiding) | |
+| Clipped-out text | **Rejected** | |
+| Text only in image pixels | **Not processed** (no OCR). Image-only pages are rejected; text pages carry a per-page note | |
+| `ActualText` differing from glyphs | **Rejected**. Extraction uses the drawn glyphs (`TEXT_IGNORE_ACTUALTEXT`) | before this audit such a page was accepted: the replacement string was scanned instead of the drawn name |
+| `ActualText`/`Alt`/`E` in content or property lists | **Rejected**, and verification checks the output for them too | |
+| `ActualText` only in the structure tree | **Supported**: the tree is removed and the output has no such strings | |
+
 ## Geometry mapping
 
-`extract.extract_page` reads `page.get_text("rawdict", flags=TEXT_PRESERVE_WHITESPACE,
-clip=INFINITE_RECT())`. MuPDF clips extraction to the page unless it is
+`extract.extract_page` reads `page.get_text("rawdict", flags=TEXT_PRESERVE_WHITESPACE |
+TEXT_IGNORE_ACTUALTEXT, clip=INFINITE_RECT())`. MuPDF clips extraction to the page unless it is
 given an unbounded clip, so off-page text is still read and can be
 rejected. It builds one string and a parallel tuple `geoms` with
 `len(geoms) == len(text)`:
@@ -185,9 +225,14 @@ and there is no output.
   text. This can affect detection but not the geometry mapping.
 - **Tight layouts.** In very tight line spacing, glyph boxes overlap the
   neighbouring line, so the mapping is rejected and no PDF is produced.
-- **Visible but unread text.** Text hidden behind images or shapes is
-  extracted and scanned like visible text. Text in Type 3 glyph procedures
-  or patterns is not specially handled.
+- **Hidden text and unusual fonts.** These are rejected rather than
+  processed: covered, clipped or invisible text, Type 3 fonts without
+  `ToUnicode`, and replacement or alternate text (see **Edge cases**).
+  Detecting covered text assumes MuPDF's draw-order logs. Soft masks,
+  blend modes and transparency groups were not tested.
+- **Lying Unicode maps.** A font whose `ToUnicode` map deliberately maps
+  glyphs to the wrong characters cannot be detected. The scanned text would
+  then differ from what is drawn.
 - **Detector quality limits redaction.** Missed PII stays in the PDF, and
   false positives are also redacted. Examples from the synthetic end-to-end
   test: an invoice reference was redacted as an SSN, and a name on page two
@@ -197,7 +242,7 @@ and there is no output.
 ## Tests
 
 ```bash
-python -m pytest tests/test_pdf.py tests/test_pdf_e2e.py tests/test_app_pdf.py
+python -m pytest tests/test_pdf.py tests/test_pdf_edge_cases.py tests/test_pdf_e2e.py tests/test_app_pdf.py tests/test_integrity.py
 ```
 
 All PDFs are generated synthetically in `tests/pdf_fixtures.py`.

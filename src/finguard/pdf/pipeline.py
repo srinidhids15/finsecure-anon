@@ -29,6 +29,7 @@ from finguard.pdf.validate import (
     inspect_document,
     open_pdf,
     reject_unsupported_structures,
+    replacement_text_objects,
 )
 from finguard.pdf.verify import PdfVerification, verify_redacted_pdf
 
@@ -86,6 +87,10 @@ def process_pdf(data: bytes, detector, limits: PdfLimits = DEFAULT_LIMITS) -> Pd
             sanitization = sanitize_document(doc)
         except Exception as exc:  # noqa: BLE001
             raise PdfProcessingError(f"Removing hidden content failed ({type(exc).__name__}).") from exc
+        if replacement_text_objects(doc.tobytes(garbage=4)):
+            raise UnsupportedPdfError(
+                "The PDF contains marked-content replacement or alternate text (ActualText/Alt). That text is "
+                "stored separately from the drawn glyphs and would survive redaction, so the PDF is not supported.")
         pages = tuple(extract_page(page) for page in doc)
         _unsupported_pages(pages)
         for p in pages:

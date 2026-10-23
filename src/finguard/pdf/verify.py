@@ -33,6 +33,7 @@ import pymupdf
 from finguard.pdf.extract import PageText, raw_blocks
 from finguard.pdf.mapping import PageMapping
 from finguard.pdf.redact import FILL
+from finguard.pdf.validate import replacement_text_objects
 
 POSITION_TOLERANCE = 0.1  # points
 FILL_TOLERANCE = 0.5
@@ -199,6 +200,8 @@ def verify_redacted_pdf(output: bytes, pages: Sequence[PageText], mappings: Sequ
                 problems.append(f"page {src.number}: {lost} unrelated glyph(s) missing from the output")
 
         hidden = _hidden_content_problems(doc)
+        if replacement_text_objects(output):
+            hidden.append("marked-content replacement or alternate text remains")
         problems += hidden
         return PdfVerification(
             opened=opened, structure_preserved=True, redaction_completed=completed,

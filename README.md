@@ -118,9 +118,12 @@ pages.
 - **Verification:** the result is reopened and checked. No text may remain
   in any redacted region, and every other character must be unchanged.
   Only then is it offered for download.
-- **Rejected:** scanned or image-only pages (no OCR), rotated or invisible
-  text, layered PDFs, XFA forms and encrypted files, with a message
-  explaining why.
+- **Rejected:** with a message explaining why:
+  - scanned or image-only pages (no OCR);
+  - rotated, invisible, clipped or image-covered text;
+  - fonts without a Unicode mapping (including Type 3 fonts without one);
+  - ActualText or alternate-text strings;
+  - layered PDFs, XFA forms and encrypted files.
 - **Not guaranteed:** complete PII removal. Undetected PII and text inside
   images remain.
 
@@ -129,12 +132,68 @@ Details: [docs/PDF.md](docs/PDF.md).
 ## Running
 
 ```bash
-python -m pytest                       # run all unit tests (real-data tests skip if data is absent)
+python -m pytest                       # all tests; model- and dataset-dependent tests skip if those are absent
 python -m pytest tests/test_schema.py  # run one test file
 python -m pytest tests/test_app.py     # app tests (Streamlit AppTest, synthetic input)
 python -m pytest tests/test_pdf.py tests/test_app_pdf.py   # PDF tests (synthetic PDFs)
 streamlit run app/streamlit_app.py     # the FinGuard app at http://localhost:8501
 ```
+
+## Model availability and reproducibility
+
+The trained model (`models/finguard_ner/model-best`, about 10 MB) and the
+dataset are **not in this repository**: both are git-ignored. On
+2026-10-22, the setup steps above were checked in a fresh Python 3.11.17
+virtual environment, on a copy of the repository without `models/`,
+`data/` or `.venv`.
+
+| situation | result |
+|---|---|
+| install with `pip install -r requirements.txt` | succeeded; `import finguard` works; `finguard.Tokenizer.v1` is registered through the entry point |
+| `python -m pytest`, no model, no dataset | 629 passed, 24 skipped (model- and dataset-dependent tests), 0 failed |
+| app, no model | starts; explains how to train the model; Scan and PDF actions are disabled |
+| freeze check, no model | fails: `changed since freeze: ['models/finguard_ner/model-best']` |
+| same, with the selected model directory copied in | freeze verifies (`ff731aed…`); 639 passed, 14 skipped (dataset tests), 0 failed |
+| app with the model | text sample and a synthetic PDF processed and verified |
+
+To get a model you must download the dataset (see [docs/DATASET.md](docs/DATASET.md))
+and run the pipeline under **Dataset**. A retrained model is a new artifact:
+
+- **It cannot pass the freeze check.** The freeze hash covers every file in
+  the model directory, including the training manifest's timestamp.
+- **Published scores do not carry over.** They apply only to the original
+  model; a new model must be evaluated as a new attempt.
+
+To reproduce the reported results exactly, the original `model-best`
+directory has to be distributed separately. That is not done yet.
+
+`requirements.txt` pins only the direct dependencies, so transitive packages
+are resolved at install time.
+
+## Results and limitations
+
+All scores come from the synthetic Mendeley dataset, using exact-span
+matching ([docs/EVALUATION.md](docs/EVALUATION.md)):
+
+| set | documents | hybrid micro F1 | notes |
+|---|---|---|---|
+| validation | 5,000 | 0.9928 | used to choose the merge policy |
+| internal test (held out, template-disjoint) | 5,000 | 0.9137 | `name` F1 0.5223; single run |
+| official benchmark (held out) | 30 | 0.9905 | 16 of 30 documents reuse a training template, so this score is optimistic |
+
+**Real-world performance is unknown.** FinGuard has not been evaluated on
+real financial documents. The synthetic data uses a small number of
+templates, so expect more missed and spurious detections on real text,
+especially for names.
+
+Every output still has to be reviewed:
+- **Text:** verification confirms that detected spans were replaced. It does
+  not show that all PII is gone.
+- **PDF:** physical removal of the detected glyphs is verified, but OCR,
+  rotated layouts and several hidden-text structures are not supported and
+  are rejected (see [docs/PDF.md](docs/PDF.md)).
+
+FinGuard is a research prototype, not a certified privacy tool.
 
 ## Project layout
 

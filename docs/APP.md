@@ -149,11 +149,33 @@ own session key, so they never mix with text-scan results.
   time, which is fine for local single-user use, not for serving many users.
 - **Not certified.** This is a research prototype, not a certified or
   production-grade privacy tool.
+- **Card-block highlight badge.** The badge appears at the start of the
+  next line, because the detector's card-block span includes its trailing
+  newline. This is cosmetic: the highlight keeps the detector's offsets.
+
+## Layout checks (Phase 9)
+
+These were checked with headless Chrome driving the running app on
+2026-10-22. The workflow was text sample → scan → anonymize, then a
+synthetic PDF upload → redact.
+
+| check | result |
+|---|---|
+| horizontal overflow at 1366 px and 390 px | none |
+| at 390 px | metric cards stack one per row; tables and the highlight view scroll inside their own boxes |
+| text and PDF results | render, with the three distinct PDF status lines |
+
+Still to be checked manually in a real browser:
+- **Sidebar:** in the headless captures it looked partly cut off at the
+  left edge at 1366 px. This may be a capture artefact.
+- **Dark theme:** contrast of the highlight colours.
+- **Downloads:** behaviour of the download buttons in the browser.
+- **PDF preview:** the preview image at narrow widths.
 
 ## Tests
 
 ```bash
-python -m pytest tests/test_interface.py tests/test_app.py
+python -m pytest tests/test_interface.py tests/test_app.py tests/test_app_pdf.py tests/test_integrity.py
 ```
 
 - `test_interface.py` covers highlighting, escaping, offsets, input
@@ -167,3 +189,11 @@ python -m pytest tests/test_interface.py tests/test_app.py
 
   Most tests use a stub detector. One uses the real hybrid detector, and one
   checks that the evaluation freeze still verifies. All inputs are synthetic.
+- `test_app_pdf.py` and `test_integrity.py` cover the PDF workflow:
+  - stale uploads;
+  - no download, preview or success status after a failed or unsupported
+    run;
+  - text-verification failure;
+  - PDF session isolation;
+  - no document data on the shared detector;
+  - silent handling of malformed PDFs.

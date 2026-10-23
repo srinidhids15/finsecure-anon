@@ -17,7 +17,16 @@ How the string is built (in MuPDF's content order, no re-sorting):
 Whitespace characters, MuPDF's synthetic spaces and the synthetic
 separators carry no geometry: redaction regions are built from visible
 glyphs only. Every non-whitespace character has a geometry (its ``rawdict``
-bounding box, origin and line number).
+bounding box, origin, line number and glyph group).
+
+Glyph groups: when one drawn glyph yields several characters (a ligature
+such as "ﬁ", or a ``ToUnicode`` entry mapping one code to several code
+points), MuPDF gives the first character the glyph's box and each further
+character a zero-width box at the glyph's right edge. Those characters
+share a ``glyph`` id, so the mapping can refuse a redaction boundary that
+falls inside one glyph (MuPDF removes whole glyphs only).
+
+The text is built from the drawn glyphs (``TEXT_IGNORE_ACTUALTEXT``).
 
 ``extract_page`` also records page conditions that make the mapping
 unreliable or leave content unscanned. ``unsupported`` conditions reject
@@ -31,16 +40,24 @@ from dataclasses import dataclass, field
 
 import pymupdf
 
-# Whitespace kept, ligatures expanded. Extraction is not clipped (MuPDF clips
-# to the page unless given an unbounded clip), so text outside the visible
-# page is seen and can be rejected.
-EXTRACT_FLAGS = pymupdf.TEXT_PRESERVE_WHITESPACE
-
-
-def raw_blocks(page: pymupdf.Page) -> list[dict]:
-    return page.get_text("rawdict", flags=EXTRACT_FLAGS, clip=pymupdf.INFINITE_RECT())["blocks"]
+# Whitespace kept, ligatures expanded, drawn glyphs rather than marked-content
+# replacement text. Extraction is not clipped (MuPDF clips to the page unless
+# given an unbounded clip), so text outside the visible page is seen and can
+# be rejected.
+EXTRACT_FLAGS = pymupdf.TEXT_PRESERVE_WHITESPACE | pymupdf.TEXT_IGNORE_ACTUALTEXT
 BASELINE_TOLERANCE = 0.5  # points
 INVISIBLE_RENDER_MODES = {3, 7}  # PDF text render modes that draw nothing
+COVERING_KINDS = {"fill-image", "fill-imgmask", "fill-shade", "fill-path"}
+MIN_COVER_HEIGHT = 0.5  # a filled path must be at least half a glyph high to hide it
+
+
+def raw_blocks(page: pymupdf.Page, flags: int = EXTRACT_FLAGS) -> list[dict]:
+    return page.get_text("rawdict", flags=flags, clip=pymupdf.INFINITE_RECT())["blocks"]
+
+
+def _visible_chars(page: pymupdf.Page, flags: int) -> str:
+    return "".join(c["c"] for b in raw_blocks(page, flags) if b.get("type") == 0 for line in b["lines"]
+                   for span in line["spans"] for c in span["chars"] if not c["c"].isspace())
 
 
 @dataclass(frozen=True)
@@ -48,6 +65,7 @@ class CharGeom:
     bbox: tuple[float, float, float, float]
     origin: tuple[float, float]
     line: int  # index of the line on this page
+    glyph: int = -1  # characters from the same drawn glyph share this id
 
     @property
     def center(self) -> tuple[float, float]:
@@ -100,12 +118,50 @@ def _trace_conditions(page: pymupdf.Page, extracted_glyphs: int) -> set[str]:
     return found
 
 
+def _hidden_text_conditions(page: pymupdf.Page) -> set[str]:
+    """Text that is extractable but not visible: covered by a later image or
+    filled shape, or clipped out. Draw order comes from ``get_bboxlog``, whose
+    indices are the ``seqno`` values of ``get_texttrace``."""
+    found = set()
+    covers = [(i, kind, pymupdf.Rect(b)) for i, (kind, b) in enumerate(page.get_bboxlog()) if kind in COVERING_KINDS]
+    if covers:
+        for span in page.get_texttrace():
+            later = [(kind, r) for i, kind, r in covers if i > span["seqno"]]
+            for c in span["chars"] if later else ():
+                if c[0] < 0 or chr(c[0]).isspace():
+                    continue
+                x0, y0, x1, y1 = c[3]
+                cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+                if any(r.x0 <= cx <= r.x1 and r.y0 <= cy <= r.y1
+                       and (kind != "fill-path" or r.height >= MIN_COVER_HEIGHT * (y1 - y0)) for kind, r in later):
+                    found.add("text covered by an image or filled shape drawn on top of it (hidden but extractable)")
+                    break
+    if len(_visible_chars(page, EXTRACT_FLAGS | pymupdf.TEXT_CLIP)) < len(_visible_chars(page, EXTRACT_FLAGS)):
+        found.add("text clipped out of view (hidden but extractable)")
+    return found
+
+
+def _replacement_text_conditions(page: pymupdf.Page) -> set[str]:
+    honoured = _visible_chars(page, EXTRACT_FLAGS & ~pymupdf.TEXT_IGNORE_ACTUALTEXT)
+    if honoured != _visible_chars(page, EXTRACT_FLAGS):
+        return {"replacement text (ActualText) that differs from the drawn glyphs"}
+    return set()
+
+
+def _font_conditions(page: pymupdf.Page) -> set[str]:
+    doc = page.parent
+    for xref, _ext, kind, *_ in page.get_fonts(full=True):
+        if kind == "Type3" and doc.xref_get_key(xref, "ToUnicode")[0] in ("null", ""):
+            return {"a Type 3 font without a Unicode mapping (its glyphs cannot be read reliably)"}
+    return set()
+
+
 def extract_page(page: pymupdf.Page) -> PageText:
     rect = page.rect
     parts: list[str] = []
     geoms: list[CharGeom | None] = []
     unsupported: set[str] = set()
-    line_no = 0
+    line_no = glyph_no = 0
     prev_baseline = prev_x1 = None
 
     for block in raw_blocks(page):
@@ -123,6 +179,7 @@ def extract_page(page: pymupdf.Page) -> PageText:
                             and chars[0]["bbox"][0] >= prev_x1 - BASELINE_TOLERANCE)
                 parts.append(" " if same_row else "\n")
                 geoms.append(None)
+            prev = None
             for c in chars:
                 ch = c["c"]
                 if len(ch) != 1:
@@ -133,8 +190,16 @@ def extract_page(page: pymupdf.Page) -> PageText:
                 parts.append(ch)
                 if ch.isspace() or c.get("synthetic"):
                     geoms.append(None)
+                    prev = None
                     continue
-                g = CharGeom(tuple(c["bbox"]), tuple(c["origin"]), line_no)
+                x0, _, x1, _ = c["bbox"]
+                continues_glyph = (prev is not None and x1 - x0 <= 1e-6
+                                   and abs(c["origin"][0] - prev["bbox"][2]) <= 0.01
+                                   and abs(c["origin"][1] - prev["origin"][1]) <= 0.01)
+                if not continues_glyph:
+                    glyph_no += 1
+                prev = c
+                g = CharGeom(tuple(c["bbox"]), tuple(c["origin"]), line_no, glyph_no)
                 cx, cy = g.center
                 if not (rect.x0 <= cx <= rect.x1 and rect.y0 <= cy <= rect.y1):
                     unsupported.add("text outside the visible page area")
@@ -150,6 +215,9 @@ def extract_page(page: pymupdf.Page) -> PageText:
     if page.rotation:
         unsupported.add(f"page rotation of {page.rotation} degrees")
     unsupported |= _trace_conditions(page, sum(g is not None for g in geoms))
+    unsupported |= _hidden_text_conditions(page)
+    unsupported |= _replacement_text_conditions(page)
+    unsupported |= _font_conditions(page)
     if not text.strip():
         if images:
             unsupported.add("no extractable text; the page is an image (scanned?) and OCR is not supported")

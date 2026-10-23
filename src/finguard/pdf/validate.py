@@ -18,6 +18,7 @@ files; they are only counted and removed.
 
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, dataclass
 
 import pymupdf
@@ -127,6 +128,26 @@ def inspect_document(doc: pymupdf.Document) -> HiddenContent:
         optional_content_groups=len(doc.get_ocgs() or {}),
         xfa_form=doc.xref_get_key(doc.pdf_catalog(), "AcroForm/XFA")[0] not in ("null", ""),
     )
+
+
+# Marked-content strings that carry text outside the drawn glyphs (replacement,
+# alternate and expansion text). Redaction removes glyphs, not these strings.
+REPLACEMENT_TEXT = re.compile(rb"/(?:ActualText|Alt|E)\s*[(<]")
+
+
+def replacement_text_objects(data: bytes) -> int:
+    """Number of objects or non-image streams in ``data`` holding ActualText,
+    Alt or E strings. Callers pass a garbage-collected save, so only objects
+    still referenced (not the removed structure tree) are counted."""
+    count = 0
+    with pymupdf.open(stream=data, filetype="pdf") as doc:
+        for xref in range(1, doc.xref_length()):
+            source = doc.xref_object(xref, compressed=False).encode("latin-1", "replace")
+            stream = b""
+            if doc.xref_is_stream(xref) and doc.xref_get_key(xref, "Subtype")[1] != "/Image":
+                stream = doc.xref_stream(xref) or b""
+            count += bool(REPLACEMENT_TEXT.search(source) or REPLACEMENT_TEXT.search(stream))
+    return count
 
 
 def reject_unsupported_structures(hidden: HiddenContent) -> None:

@@ -244,8 +244,9 @@ with tab_pdf:
     st.markdown('<div class="fg-step">Step 1 · Upload</div>', unsafe_allow_html=True)
     st.caption(
         f"Text-based PDFs only (selectable text), up to {PDF_LIMITS.max_bytes // 1_048_576} MB and "
-        f"{PDF_LIMITS.max_pages} pages. Scanned/image-only pages, rotated or invisible text, layered (optional "
-        "content) PDFs, XFA forms and encrypted files are rejected."
+        f"{PDF_LIMITS.max_pages} pages. Rejected: scanned/image-only pages (no OCR); rotated, invisible, clipped "
+        "or image-covered text; fonts without a Unicode mapping; ActualText/alternate text; layered PDFs, "
+        "XFA forms and encrypted files."
     )
     uploaded = st.file_uploader("PDF document", type=["pdf"], key="fg_pdf_upload", accept_multiple_files=False)
     pdf_bytes = uploaded.getvalue() if uploaded is not None else None

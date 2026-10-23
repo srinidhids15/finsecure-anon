@@ -63,7 +63,10 @@ def test_detector_protocol_and_labels(detector):
 
 @pytest.mark.parametrize("partition", ["train", "validation"])
 def test_inference_on_prepared_documents(detector, partition):
-    examples = read_jsonl(PROCESSED_DATA_DIR / "ner" / f"{partition}.jsonl")[:5]
+    path = PROCESSED_DATA_DIR / "ner" / f"{partition}.jsonl"
+    if not path.exists():  # the model can be present without the (git-ignored) dataset
+        pytest.skip(f"{path.name} not prepared; run python -m finguard.data.build_ner_dataset")
+    examples = read_jsonl(path)[:5]
     for ex in examples:
         entities = detector.detect(ex.text)
         assert entities, ex.record_id

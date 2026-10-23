@@ -93,3 +93,63 @@ def encoded_forms(value: str) -> list[bytes]:
     """Ways a Latin-1 string can appear in a content stream (literal or hex)."""
     raw = value.encode("latin-1")
     return [raw, raw.hex().encode(), raw.hex().upper().encode()]
+
+
+# --- hand-written PDFs for structures PyMuPDF's high-level API cannot create ---
+
+HELVETICA = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"
+
+
+def raw_pdf(content: bytes, fonts: dict[str, str], extra: list | None = None, catalog: str = "",
+            resources: str = "") -> bytes:
+    """A one-page 595x842 PDF written byte by byte.
+
+    Objects 1-4 are catalog, pages, page and content stream; ``extra``
+    bodies are numbered from 5 so fonts and other objects can refer to them.
+    """
+    objs = {
+        1: f"<< /Type /Catalog /Pages 2 0 R {catalog}>>".encode(),
+        2: b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        3: (f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << "
+            + " ".join(f"/{k} {v}" for k, v in fonts.items()) + f" >> {resources}>> >>").encode(),
+        4: b"<< /Length %d >>\nstream\n" % len(content) + content + b"\nendstream",
+    }
+    for n, body in enumerate(extra or [], 5):
+        objs[n] = body if isinstance(body, bytes) else body.encode()
+    out = bytearray(b"%PDF-1.7\n")
+    offsets = {}
+    for n in sorted(objs):
+        offsets[n] = len(out)
+        out += b"%d 0 obj\n" % n + objs[n] + b"\nendobj\n"
+    xref = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objs) + 1)
+    out += b"".join(b"%010d 00000 n \n" % offsets[n] for n in sorted(objs))
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objs) + 1, xref)
+    return bytes(out)
+
+
+def stream_obj(data: bytes, dictionary: str = "") -> bytes:
+    return b"<< /Length %d %s >>\nstream\n" % (len(data), dictionary.encode()) + data + b"\nendstream"
+
+
+def to_unicode_cmap(pairs: dict[int, str]) -> bytes:
+    """A ToUnicode CMap mapping single-byte codes to (possibly several) code points."""
+    lines = b"".join(b"<%02X> <%s>\n" % (code, "".join(f"{ord(ch):04X}" for ch in text).encode())
+                     for code, text in pairs.items())
+    return (b"/CIDInit /ProcSet findresource begin 12 dict begin begincmap /CMapName /FG def\n"
+            b"1 begincodespacerange <00> <FF> endcodespacerange\n"
+            b"%d beginbfchar\n" % len(pairs) + lines + b"endbfchar\nendcmap CMapName currentdict /CMap "
+            b"defineresource pop end end")
+
+
+def type3_font(to_unicode_ref: str = "") -> str:
+    """A Type 3 font whose glyphs (codes 32-90) all draw a filled box."""
+    codes = range(32, 91)
+    diffs = " ".join(f"{c} /g" for c in codes)
+    return ("<< /Type /Font /Subtype /Type3 /FontBBox [0 0 600 700] /FontMatrix [0.001 0 0 0.001 0 0] "
+            f"/CharProcs << /g 5 0 R >> /Encoding << /Type /Encoding /Differences [{diffs}] >> "
+            f"/FirstChar 32 /LastChar 90 /Widths [{' '.join(['600'] * len(codes))}] /Resources << >> "
+            f"{'/ToUnicode ' + to_unicode_ref if to_unicode_ref else ''} >>")
+
+
+TYPE3_GLYPH = stream_obj(b"600 0 0 0 500 700 d1 0 0 500 700 re f")
